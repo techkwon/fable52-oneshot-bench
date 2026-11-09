@@ -1,0 +1,299 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#111413">
+  <title>HEX — 회전하는 육각형</title>
+  <style>
+    :root { color-scheme: dark; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #eaece5; background: #111413; }
+    * { box-sizing: border-box; }
+    body { margin: 0; min-width: 280px; }
+    main { min-height: 100svh; display: flex; flex-direction: column; }
+    header { display: flex; justify-content: space-between; align-items: center; padding: 28px 40px; gap: 16px; }
+    .brand { font-size: 22px; letter-spacing: -.07em; font-weight: 800; }
+    .brand span { color: #dfaa74; }
+    .label { font-size: 10px; letter-spacing: .17em; color: #8b938d; }
+    .status { display: flex; align-items: center; gap: 9px; font-size: 11px; color: #aeb6ae; }
+    .dot { height: 6px; width: 6px; border-radius: 50%; background: #dfaa74; box-shadow: 0 0 12px #dfaa7450; }
+    .paused .dot { background: #737b75; box-shadow: none; }
+    .stage { flex: 1; min-height: 330px; height: calc(100svh - 226px); position: relative; }
+    canvas { display: block; width: 100%; height: 100%; }
+    .caption { position: absolute; top: 8px; left: 40px; pointer-events: none; }
+    h1 { font-size: 14px; font-weight: 500; margin: 0 0 7px; letter-spacing: -.025em; }
+    .caption p { font-size: 11px; color: #778079; margin: 0; }
+    .coordinates { position: absolute; right: 40px; bottom: 14px; font: 10px ui-monospace, monospace; color: #788179; letter-spacing: .07em; }
+    footer { padding: 18px 40px 25px; }
+    .controls { border-top: 1px solid #ffffff13; padding-top: 21px; display: flex; justify-content: space-between; align-items: center; gap: 28px; }
+    .buttons { display: flex; align-items: center; gap: 9px; }
+    button { height: 40px; border: 1px solid #ffffff20; border-radius: 50%; width: 40px; color: #c8cfc6; background: transparent; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; transition: background .2s, border-color .2s; }
+    button:hover { background: #ffffff0b; border-color: #ffffff50; }
+    button:focus-visible, input:focus-visible { outline: 2px solid #dfaa74; outline-offset: 5px; }
+    button.primary { color: #161a16; background: #dfaa74; border-color: #dfaa74; }
+    button.primary:hover { background: #edbd8a; }
+    button svg { width: 16px; height: 16px; }
+    .sliders { display: flex; align-items: center; gap: 36px; }
+    .setting { width: 155px; }
+    .setting label { display: flex; justify-content: space-between; font-size: 11px; color: #a4ada4; margin-bottom: 10px; }
+    output { color: #d6dcd2; font: 11px ui-monospace, monospace; }
+    input[type=range] { display: block; width: 100%; height: 3px; margin: 0; accent-color: #dfaa74; cursor: pointer; }
+    .note { font-size: 10px; color: #6f7971; text-align: right; line-height: 1.8; }
+    @media (max-width: 640px) {
+      header { padding: 22px 22px; }
+      .label { display: none; }
+      .caption { left: 22px; top: 2px; }
+      .coordinates { right: 22px; bottom: 10px; }
+      .stage { height: calc(100svh - 250px); min-height: 310px; }
+      footer { padding: 14px 22px 24px; }
+      .controls { flex-wrap: wrap; gap: 22px 16px; padding-top: 18px; }
+      .sliders { flex: 1; justify-content: flex-end; gap: 24px; }
+      .setting { width: min(25vw, 135px); }
+      .note { width: 100%; text-align: left; }
+    }
+    @media (prefers-reduced-motion: reduce) { button { transition: none; } }
+  </style>
+</head>
+<body>
+  <main>
+    <header>
+      <div class="brand" aria-label="HEX">HEX<span>·</span></div>
+      <div class="label">움직임의 작은 실험</div>
+      <div class="status" id="status"><span class="dot"></span><span id="statusText">시뮬레이션 실행 중</span></div>
+    </header>
+    <section class="stage" aria-label="회전하는 육각형 안에서 튀는 공 10개">
+      <div class="caption"><h1>회전하는 육각형</h1><p>10개의 공. 중력, 충돌, 그리고 회전.</p></div>
+      <canvas id="canvas" role="img" aria-label="중력과 회전하는 벽의 힘을 받아 서로 부딪히며 튀는 색색의 공 10개">이 애니메이션을 보려면 Canvas를 지원하는 브라우저가 필요합니다.</canvas>
+      <div class="coordinates" aria-hidden="true">10 BALLS / 06 SIDES</div>
+    </section>
+    <footer>
+      <div class="controls">
+        <div class="buttons">
+          <button class="primary" id="pause" type="button" aria-label="일시 정지" title="일시 정지 (스페이스)">
+            <svg id="pauseIcon" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path d="M5 4h3.5v12H5zm6.5 0H15v12h-3.5z"/></svg>
+          </button>
+          <button id="reset" type="button" aria-label="처음부터 다시" title="처음부터 다시 (R)"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 7a6.5 6.5 0 1 1-.2 5M4 2.5V7h4.5" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        </div>
+        <div class="sliders">
+          <div class="setting"><label for="rotation">회전 속도 <output id="rotationValue" for="rotation">1.0×</output></label><input id="rotation" type="range" min="-2" max="2" step="0.1" value="1" aria-label="회전 속도, 음수는 반대 방향"></div>
+          <div class="setting"><label for="gravity">중력 <output id="gravityValue" for="gravity">1.0×</output></label><input id="gravity" type="range" min="0" max="2" step="0.1" value="1" aria-label="중력"></div>
+        </div>
+        <div class="note">회전 속도를 바꾸며 움직임을 살펴보세요.<br>스페이스 · 일시 정지 &nbsp; R · 다시 시작</div>
+      </div>
+    </footer>
+  </main>
+  <script>
+    'use strict';
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const pauseButton = document.getElementById('pause');
+    const rotationInput = document.getElementById('rotation');
+    const gravityInput = document.getElementById('gravity');
+    const TAU = Math.PI * 2;
+    const RADIUS = 270;
+    const STEP = 1 / 240;
+    const colors = ['#e7ae79', '#b8c9a1', '#93b8be', '#d4a2a2', '#c9bc91', '#a6aed0', '#d7c5aa', '#86b7a5', '#cea5be', '#dfc978'];
+    let balls = [], angle = -Math.PI / 6, paused = false;
+    let width = 1, height = 1, scale = 1, dpr = 1;
+    let previousTime = null, accumulator = 0;
+
+    function reset() {
+      angle = -Math.PI / 6;
+      accumulator = 0;
+      // A separated starting lattice avoids initial overlap and gives each ball room.
+      balls = colors.map((color, i) => ({
+        x: (i % 4 - 1.5) * 65 + (i >= 8 ? 65 : 0),
+        y: Math.floor(i / 4) * 59 - 105,
+        vx: (Math.random() - .5) * 155,
+        vy: (Math.random() - .5) * 95,
+        radius: 13 + (i % 3) * 1.5,
+        color,
+        trail: []
+      }));
+    }
+
+    function resize() {
+      const bounds = canvas.getBoundingClientRect();
+      width = Math.max(bounds.width, 1);
+      height = Math.max(bounds.height, 1);
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width = Math.round(width * dpr);
+      canvas.height = Math.round(height * dpr);
+      // Physics stays in world coordinates, independent of screen size and density.
+      scale = Math.max(.01, Math.min((width - 48) / 610, (height - 70) / 610, 1.4));
+    }
+
+    function vertices() {
+      return Array.from({ length: 6 }, (_, i) => ({
+        x: Math.cos(angle + i * TAU / 6) * RADIUS,
+        y: Math.sin(angle + i * TAU / 6) * RADIUS
+      }));
+    }
+
+    function contain(ball, edges, omega) {
+      for (let i = 0; i < 6; i++) {
+        const a = edges[i], b = edges[(i + 1) % 6];
+        const dx = b.x - a.x, dy = b.y - a.y;
+        const length = Math.hypot(dx, dy);
+        const nx = -dy / length, ny = dx / length;
+        const distance = (ball.x - a.x) * nx + (ball.y - a.y) * ny;
+        if (distance >= ball.radius) continue;
+        ball.x += nx * (ball.radius - distance);
+        ball.y += ny * (ball.radius - distance);
+        const contactX = ball.x - nx * ball.radius;
+        const contactY = ball.y - ny * ball.radius;
+        // Reflect relative to the moving wall: v_wall = omega cross radius.
+        const wallVX = -omega * contactY, wallVY = omega * contactX;
+        const relativeVX = ball.vx - wallVX, relativeVY = ball.vy - wallVY;
+        const normalSpeed = relativeVX * nx + relativeVY * ny;
+        if (normalSpeed < 0) {
+          const tangentSpeed = relativeVX * -ny + relativeVY * nx;
+          ball.vx -= 1.86 * normalSpeed * nx + .018 * tangentSpeed * -ny;
+          ball.vy -= 1.86 * normalSpeed * ny + .018 * tangentSpeed * nx;
+        }
+      }
+    }
+
+    function collide(a, b) {
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const distance = Math.hypot(dx, dy), minimum = a.radius + b.radius;
+      if (distance >= minimum) return;
+      const nx = distance > 1e-8 ? dx / distance : 1;
+      const ny = distance > 1e-8 ? dy / distance : 0;
+      // Mass is proportional to area; distribute corrections and impulses by mass.
+      const invA = 1 / (a.radius * a.radius), invB = 1 / (b.radius * b.radius);
+      const inverseMass = invA + invB;
+      const correction = (minimum - distance + .001) / inverseMass;
+      a.x -= nx * correction * invA; a.y -= ny * correction * invA;
+      b.x += nx * correction * invB; b.y += ny * correction * invB;
+      const speed = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
+      if (speed >= 0) return;
+      const impulse = -1.9 * speed / inverseMass;
+      a.vx -= impulse * nx * invA; a.vy -= impulse * ny * invA;
+      b.vx += impulse * nx * invB; b.vy += impulse * ny * invB;
+    }
+
+    function update(dt) {
+      const omega = Number(rotationInput.value) * .38;
+      const gravity = Number(gravityInput.value) * 620;
+      angle = (angle + omega * dt) % TAU;
+      const edges = vertices();
+      const drag = Math.exp(-.055 * dt);
+      for (const ball of balls) {
+        ball.vy += gravity * dt;
+        ball.vx *= drag; ball.vy *= drag;
+        ball.x += ball.vx * dt; ball.y += ball.vy * dt;
+      }
+      // Repeated constraints resolve stacks and corner contacts without tunneling.
+      for (let pass = 0; pass < 5; pass++) {
+        for (let i = 0; i < balls.length; i++) {
+          for (let j = i + 1; j < balls.length; j++) collide(balls[i], balls[j]);
+        }
+        for (const ball of balls) contain(ball, edges, omega);
+      }
+    }
+
+    function polygon(points) {
+      ctx.beginPath();
+      points.forEach((p, i) => i ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y));
+      ctx.closePath();
+    }
+
+    function draw() {
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      ctx.clearRect(0, 0, width, height);
+      const cx = width / 2, cy = height / 2 + 12;
+      const halo = ctx.createRadialGradient(cx, cy, 10, cx, cy, 380 * scale);
+      halo.addColorStop(0, '#26302655'); halo.addColorStop(1, '#11141300');
+      ctx.fillStyle = halo; ctx.fillRect(0, 0, width, height);
+      ctx.save();
+      ctx.translate(cx, cy); ctx.scale(scale, scale);
+
+      ctx.fillStyle = '#c5d8c01a';
+      for (let x = -360; x <= 360; x += 30) {
+        for (let y = -330; y <= 330; y += 30) {
+          if (Math.hypot(x, y) > 345) continue;
+          ctx.beginPath(); ctx.arc(x, y, .7, 0, TAU); ctx.fill();
+        }
+      }
+      ctx.strokeStyle = '#9ba58f16'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.arc(0, 0, RADIUS + 21, 0, TAU); ctx.stroke();
+      for (let i = 0; i < 60; i++) {
+        const t = i * TAU / 60;
+        const inner = RADIUS + (i % 5 === 0 ? 16 : 19);
+        ctx.beginPath(); ctx.moveTo(Math.cos(t) * inner, Math.sin(t) * inner);
+        ctx.lineTo(Math.cos(t) * (RADIUS + 23), Math.sin(t) * (RADIUS + 23)); ctx.stroke();
+      }
+
+      const edges = vertices();
+      polygon(edges); ctx.fillStyle = '#18201a88'; ctx.fill();
+      const border = ctx.createLinearGradient(-270, -270, 270, 270);
+      border.addColorStop(0, '#f0cda6'); border.addColorStop(.48, '#c89562'); border.addColorStop(1, '#7a6349');
+      ctx.strokeStyle = border; ctx.lineWidth = 2.5; ctx.lineJoin = 'round';
+      ctx.shadowColor = '#dca56b33'; ctx.shadowBlur = 15; ctx.stroke(); ctx.shadowBlur = 0;
+
+      // Clip only the rendering; containment is enforced independently by physics.
+      ctx.save(); polygon(edges); ctx.clip();
+      for (const ball of balls) {
+        if (!paused) {
+          ball.trail.push({ x: ball.x, y: ball.y });
+          if (ball.trail.length > 9) ball.trail.shift();
+        }
+        ctx.lineCap = 'round'; ctx.lineWidth = ball.radius * 1.2;
+        for (let i = 1; i < ball.trail.length; i++) {
+          ctx.globalAlpha = i / ball.trail.length * .045;
+          ctx.strokeStyle = ball.color; ctx.beginPath();
+          ctx.moveTo(ball.trail[i - 1].x, ball.trail[i - 1].y);
+          ctx.lineTo(ball.trail[i].x, ball.trail[i].y); ctx.stroke();
+        }
+        ctx.globalAlpha = 1;
+        const sphere = ctx.createRadialGradient(ball.x - ball.radius * .35, ball.y - ball.radius * .4, 0, ball.x, ball.y, ball.radius * 1.2);
+        sphere.addColorStop(0, '#f4f2df'); sphere.addColorStop(.32, ball.color); sphere.addColorStop(1, '#343d34');
+        ctx.fillStyle = sphere;
+        ctx.shadowColor = '#00000055'; ctx.shadowBlur = 8; ctx.shadowOffsetY = 3;
+        ctx.beginPath(); ctx.arc(ball.x, ball.y, ball.radius, 0, TAU); ctx.fill();
+        ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
+        ctx.strokeStyle = '#ffffff25'; ctx.lineWidth = .7; ctx.stroke();
+      }
+      ctx.restore();
+      for (const point of edges) {
+        ctx.fillStyle = '#e4b98b'; ctx.beginPath(); ctx.arc(point.x, point.y, 3.1, 0, TAU); ctx.fill();
+      }
+      ctx.restore();
+    }
+
+    function frame(time) {
+      if (previousTime === null) previousTime = time;
+      if (!paused && !document.hidden) {
+        accumulator += Math.min((time - previousTime) / 1000, .05);
+        while (accumulator >= STEP) { update(STEP); accumulator -= STEP; }
+      }
+      previousTime = time;
+      draw();
+      requestAnimationFrame(frame);
+    }
+
+    function togglePause() {
+      paused = !paused;
+      pauseButton.setAttribute('aria-label', paused ? '재생' : '일시 정지');
+      pauseButton.title = (paused ? '재생' : '일시 정지') + ' (스페이스)';
+      document.getElementById('pauseIcon').innerHTML = paused ? '<path d="M6 3.5 16 10 6 16.5z"/>' : '<path d="M5 4h3.5v12H5zm6.5 0H15v12h-3.5z"/>';
+      document.getElementById('statusText').textContent = paused ? '일시 정지됨' : '시뮬레이션 실행 중';
+      document.getElementById('status').classList.toggle('paused', paused);
+    }
+
+    pauseButton.addEventListener('click', togglePause);
+    document.getElementById('reset').addEventListener('click', reset);
+    for (const [input, output] of [[rotationInput, 'rotationValue'], [gravityInput, 'gravityValue']]) {
+      input.addEventListener('input', () => { document.getElementById(output).value = Number(input.value).toFixed(1) + '×'; });
+    }
+    document.addEventListener('keydown', event => {
+      if (event.target.matches('input, button, textarea, select') || event.ctrlKey || event.metaKey || event.altKey) return;
+      if (event.code === 'Space') { event.preventDefault(); togglePause(); }
+      if (event.key.toLowerCase() === 'r') reset();
+    });
+    document.addEventListener('visibilitychange', () => { previousTime = null; accumulator = 0; });
+    window.addEventListener('resize', resize);
+    reset(); resize(); requestAnimationFrame(frame);
+  </script>
+</body>
+</html>

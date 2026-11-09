@@ -1,0 +1,178 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#eeede8">
+<title>KINETIC® — Nothing stands still.</title>
+<style>
+:root{--paper:#eeede8;--ink:#20211e;--orange:#ff592c;--muted:#777970}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);font-family:Arial,Helvetica,sans-serif;-webkit-font-smoothing:antialiased}button,input{font:inherit}button{cursor:pointer;-webkit-tap-highlight-color:transparent}button:focus-visible,a:focus-visible{outline:2px solid var(--orange);outline-offset:5px}.masthead{height:100px;padding:0 4%;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #d2d2cb}.brand{display:flex;align-items:center;gap:12px;font-size:29px;font-weight:900;letter-spacing:-1.8px}.brand svg{width:31px;height:31px}.brand sup{font-size:12px;align-self:flex-start;margin-top:3px;margin-left:-7px}.masthead .center{font:10px/1.6 'Courier New',monospace;letter-spacing:1.1px;margin-left:-35px}.edition{font:11px 'Courier New',monospace;letter-spacing:.5px;display:flex;align-items:center;gap:9px}.live-dot{width:6px;height:6px;background:var(--orange);border-radius:50%;box-shadow:0 0 0 4px #ff592c12}.workspace{width:min(calc(100% - 8%),calc((100svh - 250px)*1.777778),1500px);margin:0 auto}.caption{height:52px;display:flex;align-items:center;justify-content:space-between;font:10px 'Courier New',monospace;letter-spacing:1px}.caption .right{color:#70726b}.film{position:relative;background:#ff592c;aspect-ratio:16/9;overflow:hidden;isolation:isolate}.film canvas{display:block;width:100%;height:100%}.film:fullscreen{width:100vw;height:100vh;aspect-ratio:auto;background:#171915;display:flex;align-items:center;justify-content:center}.film:fullscreen canvas{width:min(100vw,177.77778vh);height:min(100vh,56.25vw)}.pause-indicator{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:#eeede8e8;color:#222;border-radius:50%;width:72px;height:72px;display:grid;place-items:center;opacity:0;pointer-events:none;transition:opacity .2s}.film.paused .pause-indicator{opacity:1}.pause-indicator svg{width:23px;margin-left:4px}.film-note{position:absolute;right:22px;bottom:20px;color:#fff;mix-blend-mode:difference;font:9px 'Courier New',monospace;letter-spacing:1px;opacity:0;transition:opacity .2s;pointer-events:none}.film:hover .film-note{opacity:.75}.transport{height:71px;display:flex;align-items:center;gap:19px;border-bottom:1px solid #c9cbc2}.icon-button{border:0;background:none;color:var(--ink);display:flex;align-items:center;justify-content:center;padding:10px;flex-shrink:0}.icon-button svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.6}.play{border-radius:50%;width:36px;height:36px;padding:10px;background:var(--ink);color:var(--paper)}.play svg{width:14px;height:14px;fill:currentColor;stroke:none}.time{font:10px 'Courier New',monospace;white-space:nowrap;letter-spacing:.4px;display:flex;gap:7px;min-width:94px}.duration{color:#8d8f86}.scrubber{position:relative;flex:1;height:30px;display:flex;align-items:center;cursor:pointer}.track{position:absolute;left:0;right:0;height:2px;background:#c9cbc2}.fill{height:100%;background:var(--ink);width:0;position:relative}.fill:after{content:'';position:absolute;right:-3px;top:-2px;width:6px;height:6px;border-radius:50%;background:var(--orange)}.markers{position:absolute;inset:0;display:flex;justify-content:space-between;pointer-events:none;align-items:center}.markers i{height:6px;width:1px;background:#a5a79c}.scrubber input{position:absolute;inset:0;opacity:0;width:100%;margin:0;cursor:pointer;height:100%}.scrubber:focus-within{outline:1px solid var(--orange);outline-offset:5px}.sound{gap:8px;padding-right:0}.sound span{font:9px 'Courier New',monospace;letter-spacing:.6px;min-width:61px}.sound.active{color:#dc4621}.divider{height:18px;width:1px;background:#c9cbc2}.loop{padding:8px;color:#9b9d94}.loop.active{color:var(--ink)}.footer{display:flex;align-items:flex-start;justify-content:space-between;padding-top:22px;padding-bottom:24px;gap:16px}.tagline{font-size:12px;font-weight:500;letter-spacing:-.15px}.disciplines{font:9px/1.5 'Courier New',monospace;color:#77796f;letter-spacing:.5px;text-align:right}.shortcut{font:9px 'Courier New',monospace;color:#888a80}.shortcut kbd{font:inherit;border:1px solid #cccec4;border-radius:2px;padding:2px 5px;margin-right:5px}.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}@media(min-height:1000px){.workspace{width:min(calc(100% - 8%),calc((100svh - 275px)*1.777778),1500px)}.masthead{height:110px}.caption{height:60px}}@media(max-width:700px){.masthead{height:78px;padding:0 6%}.brand{font-size:25px}.brand svg{width:26px}.masthead .center{display:none}.edition{font-size:9px}.workspace{width:88%;margin-top:20px}.caption{height:46px;font-size:8px;letter-spacing:.5px}.caption .right{max-width:125px;text-align:right;line-height:1.6}.transport{gap:10px;height:66px}.time{font-size:9px;min-width:78px;gap:4px}.sound span{display:none}.sound{padding:7px}.divider{display:none}.loop{display:none}.icon-button{padding:7px}.play{width:32px;height:32px}.footer{padding-top:20px}.tagline{font-size:11px;max-width:130px;line-height:1.6}.disciplines{font-size:8px;max-width:145px;line-height:1.9}.shortcut{display:none}.film-note{display:none}.pause-indicator{width:48px;height:48px}.pause-indicator svg{width:17px}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}.pause-indicator{transition:none}}
+</style>
+</head>
+<body>
+<header class="masthead">
+ <div class="brand"><svg viewBox="0 0 40 40" aria-hidden="true"><path fill="currentColor" d="M17 0h6v12.8l9.1-9.1 4.2 4.2-9.1 9.1H40v6H27.2l9.1 9.1-4.2 4.2-9.1-9.1V40h-6V27.2l-9.1 9.1-4.2-4.2 9.1-9.1H0v-6h12.8L3.7 7.9l4.2-4.2 9.1 9.1z"/></svg>KINETIC<sup>®</sup></div>
+ <div class="center">INDEPENDENT SPIRIT.<br>PERPETUAL MOTION.</div>
+ <div class="edition"><span class="live-dot"></span>SHOWREEL — VOL. 01 <span style="margin-left:12px;font-size:17px">↗</span></div>
+</header>
+<main class="workspace">
+ <div class="caption"><span>SELECTED EXPERIMENTS / 2026</span><span class="right">FIFTEEN SECONDS. ZERO STANDING STILL.</span></div>
+ <section class="film" id="film" aria-label="Kinetic, a fifteen-second animated motion design showreel">
+  <canvas id="canvas" width="1600" height="900" role="img" aria-label="Six animated compositions: Make it move, Find your flow, A new dimension, Break the grid, Feel everything, and Nothing stands still.">Your browser needs Canvas support to play this motion graphics showreel.</canvas>
+  <div class="pause-indicator" aria-hidden="true"><svg viewBox="0 0 24 24"><path fill="currentColor" d="M5 3v18l16-9z"/></svg></div>
+  <div class="film-note">SPACE TO PAUSE · F FOR FULLSCREEN</div>
+ </section>
+ <div class="transport" role="group" aria-label="Playback controls">
+  <button id="play" class="icon-button play" aria-label="Pause"><svg viewBox="0 0 20 20"><path d="M5 3h3v14H5zm7 0h3v14h-3z"/></svg></button>
+  <div class="time"><span id="time">00:00</span><span class="duration">/ 00:15</span></div>
+  <div class="scrubber"><div class="track"><div class="fill" id="fill"></div></div><div class="markers" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div><input id="seek" type="range" min="0" max="15" step="0.01" value="0" aria-label="Seek through the fifteen-second showreel"></div>
+  <button id="loop" class="icon-button loop active" aria-label="Loop playback" aria-pressed="true" title="Loop playback"><svg viewBox="0 0 24 24"><path d="m17 2 4 4-4 4M3 11V9a3 3 0 0 1 3-3h15M7 22l-4-4 4-4m14-1v2a3 3 0 0 1-3 3H3"/></svg></button>
+  <button id="sound" class="icon-button sound" aria-label="Enable sound" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M11 4 6 8H2v8h4l5 4V4zm5 5 6 6m0-6-6 6"/></svg><span>SOUND OFF</span></button>
+  <span class="divider"></span><button id="fullscreen" class="icon-button" aria-label="Enter fullscreen" title="Fullscreen (F)"><svg viewBox="0 0 24 24"><path d="M8 3H3v5m13-5h5v5M3 16v5h5m8 0h5v-5"/></svg></button>
+ </div>
+ <footer class="footer"><div class="tagline">A little chaos. A lot of intention.</div><div class="shortcut"><kbd>SPACE</kbd> pause & play</div><div class="disciplines">ART DIRECTION &nbsp;·&nbsp; KINETIC TYPE &nbsp;·&nbsp; 3D EXPLORATION<br>DESIGNED TO MAKE YOU FEEL SOMETHING.</div></footer>
+</main>
+<script>
+'use strict';
+/* Visual thesis: Swiss typography meets tactile, impossible objects.
+   Six acts: impulse → fluidity → dimension → disruption → emotion → signature.
+   Motion language: elastic arrivals, continuous 3D rotation, directional match cuts. */
+(()=>{
+const canvas=document.getElementById('canvas'),c=canvas.getContext('2d',{alpha:false});
+const W=1600,H=900,TAU=Math.PI*2,PAPER='#eeede8',INK='#20211e',ORANGE='#ff592c',LIME='#d9f861',LILAC='#b9a5e8';
+const $=id=>document.getElementById(id),film=$('film'),seek=$('seek');
+const reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
+let playing=!reduced,loop=true,time=reduced?1.2:0,last=0,muted=true,audio=null,master=null,lastBeat=-1,frameId=0;
+const clamp=(v,a=0,b=1)=>Math.max(a,Math.min(b,v)),lerp=(a,b,t)=>a+(b-a)*t;
+const ease=v=>1-Math.pow(1-clamp(v),4);
+const smooth=v=>{v=clamp(v);return v*v*(3-2*v)};
+const back=v=>{v=clamp(v)-1;return 1+2.7*v*v*v+1.7*v*v};
+const noise=n=>{const v=Math.sin(n*127.1+311.7)*43758.5453;return v-Math.floor(v)};
+function bg(color){c.fillStyle=color;c.fillRect(0,0,W,H)}
+function line(x1,y1,x2,y2,color,width=1){c.beginPath();c.moveTo(x1,y1);c.lineTo(x2,y2);c.strokeStyle=color;c.lineWidth=width;c.stroke()}
+function circle(x,y,r,color,stroke=false,width=1){if(r<=0)return;c.beginPath();c.arc(x,y,r,0,TAU);c.lineWidth=width;if(stroke){c.strokeStyle=color;c.stroke()}else{c.fillStyle=color;c.fill()}}
+function text(str,x,y,size,color=INK,opts={}){c.save();c.translate(x,y);c.rotate(opts.rotate||0);c.scale(opts.sx||1,opts.sy||1);c.font=`${opts.weight||900} ${size}px Arial, Helvetica, sans-serif`;c.textAlign=opts.align||'left';c.textBaseline='alphabetic';c.lineJoin='round';if(opts.stroke){c.strokeStyle=color;c.lineWidth=opts.stroke;c.strokeText(str,0,0)}else{c.fillStyle=color;c.fillText(str,0,0)}c.restore()}
+function mono(str,x,y,color=INK,size=15,align='left'){c.fillStyle=color;c.font=`${size}px "Courier New", monospace`;c.textAlign=align;c.fillText(str,x,y)}
+function star(x,y,r,color,rotation=0,points=12,inner=.4){c.save();c.translate(x,y);c.rotate(rotation);c.beginPath();for(let i=0;i<points*2;i++){let a=i/points*Math.PI-Math.PI/2,q=i%2?r*inner:r;c.lineTo(Math.cos(a)*q,Math.sin(a)*q)}c.closePath();c.fillStyle=color;c.fill();c.restore()}
+function arrow(x,y,size,color,angle=0){c.save();c.translate(x,y);c.rotate(angle);c.strokeStyle=color;c.lineWidth=size*.09;c.lineCap='square';c.beginPath();c.moveTo(-size*.5,0);c.lineTo(size*.5,0);c.moveTo(0,-size*.5);c.lineTo(size*.5,0);c.lineTo(0,size*.5);c.stroke();c.restore()}
+function label(n,name,color=INK){line(58,805,1542,805,color+'50');mono('0'+n+' / '+name,60,844,color,14);mono('KINETIC®     —     MOTION IS THE MESSAGE',1540,844,color,14,'right')}
+function topLabel(left,right,color=INK){mono(left,60,62,color,15);mono(right,1540,62,color,15,'right')}
+function rotate(p,a,b,z){let x=p[0],y=p[1],v=p[2],q=y*Math.cos(a)-v*Math.sin(a);v=y*Math.sin(a)+v*Math.cos(a);y=q;q=x*Math.cos(b)+v*Math.sin(b);v=-x*Math.sin(b)+v*Math.cos(b);x=q;return [x*Math.cos(z)-y*Math.sin(z),x*Math.sin(z)+y*Math.cos(z),v]}
+// A lit, depth-sorted, fluted torus. Geometry and material are generated locally.
+const mesh=[];const NU=112,NV=22;
+for(let i=0;i<NU;i++)for(let j=0;j<NV;j++){
+ const v=[];for(const [di,dj]of [[0,0],[1,0],[1,1],[0,1]]){const u=(i+di)/NU*TAU,a=(j+dj)/NV*TAU;const r=.32+.018*Math.cos(u*56);v.push([(1+r*Math.cos(a))*Math.cos(u),(1+r*Math.cos(a))*Math.sin(u),r*Math.sin(a)])}
+ const u=(i+.5)/NU*TAU,a=(j+.5)/NV*TAU;mesh.push({v,n:[Math.cos(a)*Math.cos(u),Math.cos(a)*Math.sin(u),Math.sin(a)]})
+}
+function torus(cx,cy,scale,rx,ry,rz,tint='silver'){
+ const faces=[];
+ for(const f of mesh){const pts=f.v.map(p=>rotate(p,rx,ry,rz)),n=rotate(f.n,rx,ry,rz);faces.push({pts,n,z:pts.reduce((s,p)=>s+p[2],0)/4})}
+ faces.sort((a,b)=>a.z-b.z);
+ for(const f of faces){const n=f.n;let diffuse=clamp(n[0]*-.35+n[1]*-.55+n[2]*.76),band=Math.pow(clamp(Math.cos(n[0]*3.8+n[1]*2.1+n[2]*1.8)),14),rim=Math.pow(1-Math.abs(n[2]),3);let v=clamp(.16+.52*diffuse+.52*band+.19*rim),rgb;
+ if(tint==='orange')rgb=[lerp(92,255,v),lerp(21,207,v),lerp(12,150,v)];else if(tint==='dark')rgb=[lerp(13,190,v),lerp(19,206,v),lerp(12,175,v)];else rgb=[lerp(46,250,v),lerp(40,250,v),lerp(70,255,v)];
+ c.fillStyle=`rgb(${rgb[0]|0},${rgb[1]|0},${rgb[2]|0})`;c.beginPath();for(let i=0;i<4;i++){const p=f.pts[i],s=3.9/(3.9-p[2]*.32);const x=cx+p[0]*scale*s,y=cy+p[1]*scale*s;i?c.lineTo(x,y):c.moveTo(x,y)}c.closePath();c.fill();
+ }
+}
+const grain=document.createElement('canvas');grain.width=192;grain.height=192;const gc=grain.getContext('2d'),gd=gc.createImageData(192,192);for(let i=0;i<gd.data.length;i+=4){const v=noise(i)*255;gd.data[i]=gd.data[i+1]=gd.data[i+2]=v;gd.data[i+3]=20}gc.putImageData(gd,0,0);const pattern=c.createPattern(grain,'repeat');
+function texture(){c.save();c.globalAlpha=.3;c.fillStyle=pattern;c.fillRect(0,0,W,H);c.restore()}
+function shadow(x,y,rx,ry,alpha=.16){c.save();c.translate(x,y);c.scale(rx,ry);const g=c.createRadialGradient(0,0,.03,0,0,1);g.addColorStop(0,`rgba(25,20,30,${alpha})`);g.addColorStop(1,'rgba(25,20,30,0)');c.fillStyle=g;c.fillRect(-1,-1,2,2);c.restore()}
+function scene0(t){
+ bg(ORANGE);topLabel('AN INDEPENDENT MOTION PRACTICE','VOLUME 01  /  15 SECONDS');
+ const a=ease(t/.65),b=ease((t-.12)/.7),d=ease((t-.24)/.7);
+ c.save();c.beginPath();c.rect(50,120,1500,640);c.clip();
+ text('MAKE',70,310+(1-a)*230,239,PAPER,{sx:.97});text('IT',70,519+(1-b)*240,239,PAPER);text('MOVE.',60,738+(1-d)*250,244,PAPER,{sx:.94});c.restore();
+ c.save();c.globalAlpha=smooth((t-.1)/.5);c.setLineDash([4,9]);circle(1155,433,330,INK+'80',true);c.setLineDash([]);line(823,433,1486,433,INK+'30');line(1155,101,1155,767,INK+'30');c.restore();
+ shadow(1170,728,335,47,.25);
+ const s=back((t+.12)/.9);torus(1165+(1-s)*300,431+Math.sin(t*1.8)*17,245*s,.50+Math.sin(t*.8)*.24,t*.56-.45,t*.17-.25);
+ star(782,157,52,INK,t*.5,12,.45);circle(1490,733,24,PAPER);arrow(1490,733,19,INK,-Math.PI/4);
+ mono('IDEAS IN',1430,171,INK,13,'right');mono('FULL ROTATION.',1430,190,INK,13,'right');
+ label(1,'THE FIRST IMPULSE');
+}
+function scene1(t){
+ bg(LILAC);topLabel('LESS STATIC. MORE FEELING.','EXPERIMENT 02 / FLUID SYSTEMS');
+ const wave=t*1.5;
+ c.save();c.translate(800,430);c.rotate(-.16);
+ for(let i=14;i>=0;i--){const s=1+i*.19; c.save();c.scale(s,s);c.beginPath();for(let j=0;j<=180;j++){const a=j/180*TAU,r=105+18*Math.sin(a*3+wave)+9*Math.sin(a*5-wave);let x=Math.cos(a)*r,y=Math.sin(a)*r*.70;j?c.lineTo(x,y):c.moveTo(x,y)}c.closePath();c.strokeStyle=i%3===0?PAPER:INK;c.lineWidth=15/s;c.stroke();c.restore()}
+ c.restore();
+ c.save();c.translate(800,450);c.rotate(-.10);let z=1+.022*Math.sin(t*TAU);c.scale(z,z);text('FIND YOUR',0,-22,134,PAPER,{align:'center',sx:.98});text('FLOW.',0,170,224,PAPER,{align:'center'});c.restore();
+ star(1373,166,47,INK,-t*.8,8,.35);mono('NO STRAIGHT LINES.',77,736,INK,14);arrow(1487,734,43,INK,Math.sin(t)*.2);
+ label(2,'A STATE OF FLOW');
+}
+function scene2(t){
+ bg(PAPER);topLabel('A DIFFERENT WAY OF SEEING.','EXPERIMENT 03 / SPATIAL PLAY');
+ // Perspective floor shifts with the object, giving the scene an architectural depth.
+ for(let i=0;i<14;i++){const x=lerp(-1100,2700,i/13);line(800+(x-800)*.12,520,x,798,'#d5d5cb')}
+ for(let i=0;i<7;i++){const y=520+Math.pow(i/6,1.8)*278;line(60,y,1540,y,'#d5d5cb')}
+ text('A NEW',64,282,193,INK,{sx:.95});text('DIMENSION.',58,457,191,INK,{sx:.72});
+ shadow(1125,710,360,50,.2);
+ const q=ease(t/.7);torus(1118,430+(1-q)*350,240*(.75+.25*q),.8+t*.44,-.4+t*.65,-t*.3,'orange');
+ c.save();c.translate(511,621);c.rotate(-.15);c.fillStyle=LIME;c.fillRect(-180,-34,360,68);mono('PERSPECTIVE IS EVERYTHING.',0,7,INK,16,'center');c.restore();
+ circle(126,658,38,INK,true,1.5);arrow(126,658,31,INK,-Math.PI/4+t*.3);
+ label(3,'BEYOND THE FLAT');
+}
+function scene3(t){
+ bg(LIME);topLabel('RULES ARE ONLY A STARTING POINT.','EXPERIMENT 04 / CONTROLLED CHAOS');
+ let e=back(t/.7);
+ c.save();c.translate(800,435);c.rotate(-.065+Math.sin(t*1.2)*.018);
+ for(let row=-2;row<=2;row++)for(let col=-4;col<=4;col++){
+ const phase=t*2+row*.6+col*.5,x=col*208,y=row*135;let s=.62+.35*Math.sin(phase);
+ c.save();c.translate(x,y);c.rotate(Math.sin(phase)*.24*e);c.fillStyle=INK;
+ if((col+row+10)%3===0){c.fillRect(-60*s,-60*s,120*s,120*s)}else if((col+row+10)%3===1){star(0,0,64*s,INK,t+row,8,.42)}else{circle(0,0,54*s,INK);circle(0,0,23*s,LIME)}c.restore();
+ }
+ c.restore();
+ c.save();c.translate(800,423);c.rotate(-.065);c.fillStyle=ORANGE;c.fillRect(-820,-105,1640,213);text('BREAK THE GRID.',0,66,175,PAPER,{align:'center',sx:.93});c.restore();
+ mono('ORDER. DISORDER. REPEAT.',60,742,INK,14);mono('↑  EXPECT THE UNEXPECTED',1540,742,INK,14,'right');label(4,'A BEAUTIFUL DISRUPTION');
+}
+function scene4(t){
+ bg('#1c211d');topLabel('MAKE SOMETHING THAT MOVES SOMEONE.','EXPERIMENT 05 / RESONANCE',PAPER);
+ const tt=t*1.4;
+ // Luminous spherical orbits with depth-sorted trails.
+ const points=[];for(let ring=0;ring<24;ring++)for(let j=0;j<78;j++){
+ const u=j/78*TAU,v=ring/24*TAU,p=rotate([(245+43*Math.cos(v*3+tt))*Math.cos(u),245*Math.sin(u),110*Math.sin(v)],.75+Math.sin(tt)*.2,tt*.45,v*.08);points.push({x:1040+p[0],y:442+p[1],z:p[2],r:ring})}
+ points.sort((a,b)=>a.z-b.z);for(const p of points){const light=clamp((p.z+300)/600);c.globalAlpha=.13+light*.7;circle(p.x,p.y,1.4+light*2.4,p.r%4===0?ORANGE:LIME)}c.globalAlpha=1;
+ for(let i=0;i<4;i++){c.save();c.translate(1040,442);c.rotate(tt*.1+i*.8);c.strokeStyle=i%2?LIME+'40':PAPER+'30';c.lineWidth=.8;c.beginPath();c.ellipse(0,0,345+i*17,100+i*19,0,0,TAU);c.stroke();c.restore()}
+ text('FEEL',67,349,239,PAPER,{sx:.96});text('EVERY',65,546,212,PAPER,{sx:.90});text('THING.',65,732,212,LIME,{sx:.94});
+ circle(1462,718,43,ORANGE);star(1462,718,28,INK,t*.6,8,.4);label(5,'EMOTION IN MOTION',PAPER);
+}
+function scene5(t){
+ bg(ORANGE);topLabel('THAT’S THE WHOLE POINT.','KINETIC® / INDEPENDENT MOTION');
+ const p=ease(t/.55);let x=(1-p)*160;
+ text('NOTHING',65+x,300,211,PAPER,{sx:.96});text('STANDS',65-x,500,211,PAPER,{sx:.96});text('STILL.',60,721+(1-p)*140,242,INK,{sx:.97});
+ const a=back((t-.12)/.65);star(1272,558,227*a,INK,t*.42+Math.PI/12,12,.48);
+ c.save();c.translate(1272,558);c.rotate(t*.42+Math.PI/12);circle(0,0,64,ORANGE);arrow(0,0,72,PAPER,-Math.PI/4);c.restore();
+ mono('LET’S MAKE',1420,174,INK,16,'right');mono('SOMETHING MOVE.',1420,199,INK,16,'right');
+ label(6,'ENDLESS POSSIBILITIES');
+}
+const scenes=[scene0,scene1,scene2,scene3,scene4,scene5];
+const sceneNames=['The first impulse','A state of flow','Beyond the flat','A beautiful disruption','Emotion in motion','Endless possibilities'];
+let displayScene=-1;
+function render(t){
+ c.setTransform(canvas.width/W,0,0,canvas.height/H,0,0);c.globalAlpha=1;
+ const i=Math.min(5,Math.floor(t/2.5)),local=t-i*2.5;scenes[i](local);
+ // Alternating direction shutters connect each shot on the same visual beat.
+ if(local<.17&&i>0){const f=1-ease(local/.17);c.fillStyle=i%2?INK:PAPER;c.fillRect(i%2?W*(1-f):0,0,W*f,H)}
+ if(local>2.35&&i<5){const f=smooth((local-2.35)/.15);c.fillStyle=(i+1)%2?INK:PAPER;c.fillRect(i%2?0:W*(1-f),0,W*f,H)}
+ texture();
+ if(displayScene!==i){displayScene=i;canvas.setAttribute('aria-label',`Scene ${i+1} of 6: ${sceneNames[i]}.`)}
+ $('fill').style.width=(t/15*100)+'%';seek.value=t;$('time').textContent='00:'+String(Math.floor(t)).padStart(2,'0');
+}
+function resize(){const rect=canvas.getBoundingClientRect(),dpr=Math.min(devicePixelRatio||1,1.6);const width=Math.min(2000,Math.round(rect.width*dpr));canvas.width=Math.max(320,width);canvas.height=Math.round(canvas.width*9/16);render(time)}
+function updatePlay(){film.classList.toggle('paused',!playing);$('play').setAttribute('aria-label',playing?'Pause':'Play');$('play').innerHTML=playing?'<svg viewBox="0 0 20 20"><path d="M5 3h3v14H5zm7 0h3v14h-3z"/></svg>':'<svg viewBox="0 0 20 20"><path d="m5 2 13 8-13 8z"/></svg>';if(master&&audio)master.gain.setTargetAtTime(playing&&!muted?.65:0,audio.currentTime,.03)}
+function togglePlay(){playing=!playing;if(playing&&time>=15)time=0;last=performance.now();updatePlay()}
+function tick(now){if(!last)last=now;const dt=Math.min((now-last)/1000,.12);last=now;if(playing&&!document.hidden){time+=dt;if(time>=15){if(loop){time%=15;lastBeat=-1}else{time=15;playing=false;updatePlay()}}render(time);soundtrack()}frameId=requestAnimationFrame(tick)}
+function tone(freq,start,duration,type='sine',vol=.12,endFreq=freq){if(!audio)return;const o=audio.createOscillator(),g=audio.createGain();o.type=type;o.frequency.setValueAtTime(freq,start);o.frequency.exponentialRampToValueAtTime(Math.max(20,endFreq),start+duration);g.gain.setValueAtTime(.0001,start);g.gain.exponentialRampToValueAtTime(vol,start+.008);g.gain.exponentialRampToValueAtTime(.0001,start+duration);o.connect(g);g.connect(master);o.start(start);o.stop(start+duration+.03)}
+function soundtrack(){if(muted||!audio||audio.state!=='running')return;const beat=Math.floor(time*4);if(beat===lastBeat)return;lastBeat=beat;const at=audio.currentTime+.015,notes=[130.81,130.81,155.56,174.61,116.54,155.56];if(beat%2===0)tone(145,at,.22,'sine',.65,42);if(beat%4===2)tone(900,at,.055,'triangle',.06,180);const n=notes[Math.min(5,Math.floor(time/2.5))];tone(n*(beat%4===3?4:2),at,.16,'triangle',.065);if(beat%10===0){tone(n*4,at,.6,'sine',.13);tone(n*6,at+.04,.65,'sine',.08)}}
+async function toggleSound(){try{if(!audio){const AC=window.AudioContext||window.webkitAudioContext;if(!AC)throw Error('Audio unavailable');audio=new AC();master=audio.createGain();master.gain.value=0;const comp=audio.createDynamicsCompressor();master.connect(comp);comp.connect(audio.destination)}await audio.resume();muted=!muted;lastBeat=-1;master.gain.setTargetAtTime(!muted&&playing?.65:0,audio.currentTime,.04);$('sound').classList.toggle('active',!muted);$('sound').setAttribute('aria-label',muted?'Enable sound':'Mute sound');$('sound').setAttribute('aria-pressed',String(!muted));$('sound').innerHTML='<svg viewBox="0 0 24 24"><path d="M11 4 6 8H2v8h4l5 4V4z'+(muted?'m5 5 6 6m0-6-6 6':'m5 3c3 2 3 8 0 10m3-13c6 5 6 11 0 16')+'"/></svg><span>SOUND '+(muted?'OFF':'ON')+'</span>'}catch(e){$('sound').setAttribute('aria-label','Sound is unavailable in this browser');$('sound').title='Sound is unavailable in this browser'}}
+async function fullscreen(){try{if(document.fullscreenElement){await document.exitFullscreen()}else if(film.requestFullscreen){await film.requestFullscreen()}else{film.classList.toggle('expanded');if(film.classList.contains('expanded')){film.style.cssText='position:fixed;inset:0;z-index:100;height:100svh;aspect-ratio:auto;display:flex;align-items:center;background:#20211e';canvas.style.cssText='height:auto;width:100%;aspect-ratio:16/9'}else{film.style.cssText='';canvas.style.cssText=''}resize()}}catch(e){$('fullscreen').title='Fullscreen is unavailable in this browser'}}
+$('play').addEventListener('click',togglePlay);film.addEventListener('click',togglePlay);$('sound').addEventListener('click',toggleSound);$('fullscreen').addEventListener('click',fullscreen);$('loop').addEventListener('click',()=>{loop=!loop;$('loop').classList.toggle('active',loop);$('loop').setAttribute('aria-pressed',String(loop))});
+seek.addEventListener('input',()=>{time=Number(seek.value);lastBeat=-1;last=performance.now();render(time)});
+window.addEventListener('keydown',e=>{if(e.target instanceof HTMLInputElement)return;if(e.code==='Space'){e.preventDefault();togglePlay()}else if(e.code==='KeyM')toggleSound();else if(e.code==='KeyF')fullscreen();else if(e.code==='ArrowRight'||e.code==='ArrowLeft'){e.preventDefault();time=clamp(time+(e.code==='ArrowRight'?.5:-.5),0,15);lastBeat=-1;render(time)}else if(e.code==='Escape'&&film.classList.contains('expanded'))fullscreen()});
+document.addEventListener('visibilitychange',()=>{last=performance.now();if(master&&audio)master.gain.setTargetAtTime(!document.hidden&&playing&&!muted?.65:0,audio.currentTime,.03)});
+window.addEventListener('resize',resize);document.addEventListener('fullscreenchange',()=>{$('fullscreen').setAttribute('aria-label',document.fullscreenElement?'Exit fullscreen':'Enter fullscreen');resize()});
+// The deterministic timeline also makes every composition reproducible for inspection.
+window.reel={get time(){return time},get playing(){return playing},get duration(){return 15},get muted(){return muted},seek(t){time=clamp(t,0,15);lastBeat=-1;render(time)},pause(){playing=false;updatePlay()},play(){if(time>=15)time=0;playing=true;last=performance.now();updatePlay()}};
+updatePlay();resize();frameId=requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>

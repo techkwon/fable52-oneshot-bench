@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Circle Chase</title>
+<script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    min-height: 100%;
+    background: #0b0d14;
+    color: #c9d1e0;
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+  }
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    gap: 18px;
+    padding: 20px;
+  }
+  h1 {
+    margin: 0;
+    font-size: 22px;
+    letter-spacing: 4px;
+    font-weight: 600;
+    color: #7fb2ff;
+    text-transform: uppercase;
+  }
+  #game {
+    width: 680px;
+    height: 480px;
+    border: 1px solid #23293a;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 0 40px rgba(60, 120, 255, 0.12);
+  }
+  #game canvas { display: block; }
+  .instructions {
+    max-width: 680px;
+    text-align: center;
+    font-size: 14px;
+    line-height: 1.7;
+    color: #8a93a8;
+  }
+  kbd {
+    display: inline-block;
+    padding: 1px 7px;
+    margin: 0 1px;
+    border: 1px solid #343b50;
+    border-bottom-width: 2px;
+    border-radius: 4px;
+    background: #161a26;
+    color: #d6deee;
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    font-size: 12px;
+  }
+  .blue { color: #5aa0ff; font-weight: 600; }
+  .red { color: #ff5a6a; font-weight: 600; }
+</style>
+</head>
+<body>
+  <h1>Circle Chase</h1>
+  <div id="game"></div>
+  <div class="instructions">
+    Move the <span class="blue">blue circle</span> with <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or the <kbd>↑</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd> arrow keys.<br>
+    Avoid the <span class="red">red circles</span>. They come in from the edges, chase you, and get faster as your score goes up.<br>
+    You and the enemies wrap around the screen edges. You get 1 point for every second you survive.<br>
+    Press <kbd>R</kbd> to restart after a game over.
+  </div>
+
+<script>
+(() => {
+  const WIDTH = 680;
+  const HEIGHT = 480;
+
+  const PLAYER_RADIUS = 12;
+  const PLAYER_SPEED = 220;          // px/sec
+  const ENEMY_RADIUS = 10;
+  const ENEMY_BASE_SPEED = 70;       // px/sec at score 0
+  const ENEMY_SPEED_PER_POINT = 2.2; // extra px/sec per score point
+  const ENEMY_MAX_SPEED = 205;       // keep the game beatable
+  const ENEMY_STEER = 4.0;           // steering responsiveness
+  const SPAWN_BASE_DELAY = 1800;     // ms
+  const SPAWN_MIN_DELAY = 450;       // ms
+  const MAX_ENEMIES = 40;
+  const SAFE_SPAWN_DIST = 170;
+
+  // Shortest signed delta on a wrapping axis
+  function wrapDelta(d, size) {
+    if (d > size / 2) d -= size;
+    else if (d < -size / 2) d += size;
+    return d;
+  }
+
+  // Wrap a position so objects re-enter from the opposite edge
+  function wrapPos(obj, r) {
+    if (obj.x < -r) obj.x += WIDTH + 2 * r;
+    else if (obj.x > WIDTH + r) obj.x -= WIDTH + 2 * r;
+    if (obj.y < -r) obj.y += HEIGHT + 2 * r;
+    else if (obj.y > HEIGHT + r) obj.y -= HEIGHT + 2 * r;
+  }
+
+  class GameScene extends Phaser.Scene {
+    constructor() { super('GameScene'); }
+
+    create() {
+      this.score = 0;
+      this.isGameOver = false;
+      this.enemies = [];
+      this.best = this.registry.get('best') || 0;
+
+      this.drawBackground();
+
+      // Player glow layers (behind) + core
+      this.glowOuter = this.add.circle(WIDTH / 2, HEIGHT / 2, PLAYER_RADIUS * 2.4, 0x3d8bff, 0.10);
+      this.glowInner = this.add.circle(WIDTH / 2, HEIGHT / 2, PLAYER_RADIUS * 1.6, 0x4f9bff, 0.22);
+      this.player = this.add.circle(WIDTH / 2, HEIGHT / 2, PLAYER_RADIUS, 0x4a90ff);
+      this.player.setStrokeStyle(2, 0xa9ccff, 0.9);
+      this.playerHighlight = this.add.circle(WIDTH / 2 - 3, HEIGHT / 2 - 4, 3.5, 0xffffff, 0.55);
+
+      // Subtle pulse
+      this.tweens.add({
+        targets: this.glowOuter,
+        scale: { from: 0.85, to: 1.2 },
+        alpha: { from: 0.16, to: 0.05 },
+        duration: 900,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
+      });
+      this.tweens.add({
+        targets: this.glowInner,
+        scale: { from: 0.95, to: 1.1 },
+        alpha: { from: 0.28, to: 0.16 },
+        duration: 900,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut'
+      });
+
+      // Input
+      this.cursors = this.input.keyboard.createCursorKeys();
+      this.keys = this.input.keyboard.addKeys('W,A,S,D,R');
+      this.input.keyboard.addCapture([
+        Phaser.Input.Keyboard.KeyCodes.UP, Phaser.Input.Keyboard.KeyCodes.DOWN,
+        Phaser.Input.Keyboard.KeyCodes.LEFT, Phaser.Input.Keyboard.KeyCodes.RIGHT,
+        Phaser.Input.Keyboard.KeyCodes.SPACE
+      ]);
+
+      // HUD
+      const hudStyle = { fontFamily: 'Segoe UI, system-ui, sans-serif', fontSize: '18px', color: '#c9d1e0' };
+      this.scoreText = this.add.text(14, 10, 'Score: 0', hudStyle).setDepth(10);
+      this.bestText = this.add.text(WIDTH - 14, 10, 'Best: ' + this.best, { ...hudStyle, color: '#7f8aa3' })
+        .setOrigin(1, 0).setDepth(10);
+      this.speedText = this.add.text(14, 34, '', { ...hudStyle, fontSize: '13px', color: '#6b7590' }).setDepth(10);
+      this.updateHud();
+
+      // Score timer: +1 every second
+      this.scoreTimer = this.time.addEvent({
+        delay: 1000,
+        loop: true,
+        callback: () => {
+          if (this.isGameOver) return;
+          this.score += 1;
+          this.updateHud();
+          this.tweens.add({ targets: this.scoreText, scale: { from: 1.15, to: 1 }, duration: 180 });
+        }
+      });
+
+      // First enemies arrive quickly, then the spawn loop takes over
+      this.time.delayedCall(600, () => this.spawnEnemy());
+      this.scheduleSpawn();
+    }
+
+    drawBackground() {
+      this.cameras.main.setBackgroundColor('#0d1018');
+      const g = this.add.graphics();
+      g.lineStyle(1, 0x1a2030, 1);
+      for (let x = 0; x <= WIDTH; x += 40) g.lineBetween(x, 0, x, HEIGHT);
+      for (let y = 0; y <= HEIGHT; y += 40) g.lineBetween(0, y, WIDTH, y);
+    }
+
+    currentEnemySpeed() {
+      return Math.min(ENEMY_MAX_SPEED, ENEMY_BASE_SPEED + this.score * ENEMY_SPEED_PER_POINT);
+    }
+
+    currentSpawnDelay() {
+      return Math.max(SPAWN_MIN_DELAY, SPAWN_BASE_DELAY - this.score * 30);
+    }
+
+    scheduleSpawn() {
+      this.spawnTimer = this.time.delayedCall(this.currentSpawnDelay(), () => {
+        if (this.isGameOver) return;
+        this.spawnEnemy();
+        this.scheduleSpawn();
+      });
+    }
+
+    spawnEnemy() {
+      if (this.isGameOver || this.enemies.length >= MAX_ENEMIES) return;
+
+      // Pick a point just outside a random edge, away from the player
+      let x, y, tries = 0;
+      do {
+        const edge = Phaser.Math.Between(0, 3);
+        if (edge === 0) { x = Phaser.Math.Between(0, WIDTH); y = -ENEMY_RADIUS; }
+        else if (edge === 1) { x = WIDTH + ENEMY_RADIUS; y = Phaser.Math.Between(0, HEIGHT); }
+        else if (edge === 2) { x = Phaser.Math.Between(0, WIDTH); y = HEIGHT + ENEMY_RADIUS; }
+        else { x = -ENEMY_RADIUS; y = Phaser.Math.Between(0, HEIGHT); }
+        tries++;
+      } while (tries < 20 && this.wrappedDistance(x, y, this.player.x, this.player.y) < SAFE_SPAWN_DIST);
+
+      const glow = this.add.circle(x, y, ENEMY_RADIUS * 1.7, 0xff3040, 0.12);
+      const enemy = this.add.circle(x, y, ENEMY_RADIUS, 0xff4757);
+      enemy.setStrokeStyle(2, 0xff9aa4, 0.8);
+
+      // Initial velocity points inward toward the player
+      const dx = wrapDelta(this.player.x - x, WIDTH);
+      const dy = wrapDelta(this.player.y - y, HEIGHT);
+      const len = Math.hypot(dx, dy) || 1;
+      const s = this.currentEnemySpeed() * 0.5;
+      enemy.vx = (dx / len) * s;
+      enemy.vy = (dy / len) * s;
+      enemy.glow = glow;
+
+      // Spawn pop-in
+      enemy.setScale(0);
+      this.tweens.add({ targets: enemy, scale: 1, duration: 250, ease: 'Back.easeOut' });
+
+      this.enemies.push(enemy);
+    }
+
+    wrappedDistance(x1, y1, x2, y2) {
+      return Math.hypot(wrapDelta(x2 - x1, WIDTH), wrapDelta(y2 - y1, HEIGHT));
+    }
+
+    updateHud() {
+      this.scoreText.setText('Score: ' + this.score);
+      this.speedText.setText('Enemy speed: ' + Math.round(this.currentEnemySpeed()) + '  |  Enemies: ' + this.enemies.length);
+    }
+
+    update(time, delta) {
+      const dt = Math.min(delta, 50) / 1000;
+
+      if (this.isGameOver) {
+        if (Phaser.Input.Keyboard.JustDown(this.keys.R)) {
+          this.scene.restart();
+        }
+        return;
+      }
+
+      this.updatePlayer(dt);
+      this.updateEnemies(dt);
+      this.checkCollisions();
+    }
+
+    updatePlayer(dt) {
+      let mx = 0, my = 0;
+      if (this.cursors.left.isDown || this.keys.A.isDown) mx -= 1;
+      if (this.cursors.right.isDown || this.keys.D.isDown) mx += 1;
+      if (this.cursors.up.isDown || this.keys.W.isDown) my -= 1;
+      if (this.cursors.down.isDown || this.keys.S.isDown) my += 1;
+
+      if (mx !== 0 || my !== 0) {
+        const len = Math.hypot(mx, my);
+        this.player.x += (mx / len) * PLAYER_SPEED * dt;
+        this.player.y += (my / len) * PLAYER_SPEED * dt;
+      }
+
+      wrapPos(this.player, PLAYER_RADIUS);
+
+      this.glowOuter.setPosition(this.player.x, this.player.y);
+      this.glowInner.setPosition(this.player.x, this.player.y);
+      this.playerHighlight.setPosition(this.player.x - 3, this.player.y - 4);
+    }
+
+    updateEnemies(dt) {
+      const speed = this.currentEnemySpeed();
+      const steer = Math.min(1, ENEMY_STEER * dt);
+
+      for (const e of this.enemies) {
+        // Seek: desired velocity = (target - position) normalized * maxSpeed.
+        // Uses the shortest path across wrapped edges.
+        const dx = wrapDelta(this.player.x - e.x, WIDTH);
+        const dy = wrapDelta(this.player.y - e.y, HEIGHT);
+        const len = Math.hypot(dx, dy) || 1;
+        const desiredX = (dx / len) * speed;
+        const desiredY = (dy / len) * speed;
+
+        // Steering = desired - current, applied gradually
+        e.vx += (desiredX - e.vx) * steer;
+        e.vy += (desiredY - e.vy) * steer;
+
+        // Clamp to max speed
+        const v = Math.hypot(e.vx, e.vy);
+        if (v > speed) { e.vx = (e.vx / v) * speed; e.vy = (e.vy / v) * speed; }
+
+        e.x += e.vx * dt;
+        e.y += e.vy * dt;
+        wrapPos(e, ENEMY_RADIUS);
+        e.glow.setPosition(e.x, e.y);
+      }
+    }
+
+    checkCollisions() {
+      const hitDist = PLAYER_RADIUS + ENEMY_RADIUS - 2; // slight leniency
+      for (const e of this.enemies) {
+        if (Phaser.Math.Distance.Between(this.player.x, this.player.y, e.x, e.y) < hitDist) {
+          this.gameOver(e);
+          return;
+        }
+      }
+    }
+
+    gameOver(hitEnemy) {
+      this.isGameOver = true;
+      this.scoreTimer.remove(false);
+      if (this.spawnTimer) this.spawnTimer.remove(false);
+      this.tweens.killTweensOf([this.glowOuter, this.glowInner]);
+
+      if (this.score > this.best) {
+        this.best = this.score;
+        this.registry.set('best', this.best);
+        this.bestText.setText('Best: ' + this.best);
+      }
+
+      this.cameras.main.shake(250, 0.012);
+      this.cameras.main.flash(200, 255, 60, 70);
+
+      // Burst particles from the player
+      for (let i = 0; i < 18; i++) {
+        const angle = (Math.PI * 2 * i) / 18;
+        const p = this.add.circle(this.player.x, this.player.y, Phaser.Math.Between(2, 4), 0x6aa8ff);
+        this.tweens.add({
+          targets: p,
+          x: this.player.x + Math.cos(angle) * Phaser.Math.Between(40, 90),
+          y: this.player.y + Math.sin(angle) * Phaser.Math.Between(40, 90),
+          alpha: 0,
+          duration: 700,
+          ease: 'Cubic.easeOut',
+          onComplete: () => p.destroy()
+        });
+      }
+      this.player.setFillStyle(0x2a3f66);
+      this.glowOuter.setVisible(false);
+      this.glowInner.setVisible(false);
+      this.playerHighlight.setVisible(false);
+      hitEnemy.setFillStyle(0xffffff);
+
+      // Overlay
+      const overlay = this.add.rectangle(WIDTH / 2, HEIGHT / 2, WIDTH, HEIGHT, 0x05070c, 0).setDepth(20);
+      this.tweens.add({ targets: overlay, fillAlpha: 0.7, duration: 400 });
+
+      const title = this.add.text(WIDTH / 2, HEIGHT / 2 - 50, 'GAME OVER', {
+        fontFamily: 'Segoe UI, system-ui, sans-serif', fontSize: '48px', fontStyle: 'bold', color: '#ff5a6a'
+      }).setOrigin(0.5).setDepth(21).setAlpha(0);
+
+      const info = this.add.text(WIDTH / 2, HEIGHT / 2 + 10, 'Score: ' + this.score + '     Best: ' + this.best, {
+        fontFamily: 'Segoe UI, system-ui, sans-serif', fontSize: '22px', color: '#d6deee'
+      }).setOrigin(0.5).setDepth(21).setAlpha(0);
+
+      const prompt = this.add.text(WIDTH / 2, HEIGHT / 2 + 56, 'Press R to restart', {
+        fontFamily: 'Segoe UI, system-ui, sans-serif', fontSize: '18px', color: '#7fb2ff'
+      }).setOrigin(0.5).setDepth(21).setAlpha(0);
+
+      this.tweens.add({ targets: [title, info], alpha: 1, duration: 400, delay: 150 });
+      this.tweens.add({
+        targets: prompt, alpha: { from: 1, to: 0.35 }, duration: 700,
+        delay: 500, yoyo: true, repeat: -1, ease: 'Sine.easeInOut'
+      });
+    }
+  }
+
+  new Phaser.Game({
+    type: Phaser.AUTO,
+    width: WIDTH,
+    height: HEIGHT,
+    parent: 'game',
+    backgroundColor: '#0d1018',
+    scene: GameScene
+  });
+})();
+</script>
+</body>
+</html>

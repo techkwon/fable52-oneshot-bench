@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Evade — a Phaser 3 survival game</title>
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    padding: 24px 16px;
+    background: radial-gradient(ellipse at 50% 30%, #141a29 0%, #0a0c12 55%, #06070a 100%) fixed;
+    color: #a9b3c9;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  h1 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.45em;
+    text-indent: 0.45em;
+    color: #5f6b85;
+  }
+  #game {
+    width: 680px;
+    max-width: 100%;
+    aspect-ratio: 680 / 480;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #0d1018;
+    box-shadow:
+      0 0 0 1px #222a3c,
+      0 24px 60px rgba(0, 0, 0, 0.6),
+      0 0 90px rgba(60, 130, 255, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #game canvas { display: block; max-width: 100%; height: auto !important; }
+  #game .status { padding: 24px; text-align: center; font-size: 14px; line-height: 1.6; color: #7b869f; }
+  .help { max-width: 680px; text-align: center; font-size: 14px; line-height: 1.7; }
+  .help p { margin: 0 0 6px; }
+  .help .dim { color: #6b7690; font-size: 13px; }
+  kbd {
+    display: inline-block;
+    min-width: 1.9em;
+    margin: 0 2px;
+    padding: 1px 6px;
+    border: 1px solid #2c3550;
+    border-bottom-width: 2px;
+    border-radius: 5px;
+    background: #151a27;
+    color: #d5def0;
+    font: 600 12px/1.6 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    text-align: center;
+  }
+  .blue { color: #5aa9ff; font-weight: 600; }
+  .red { color: #ff5d6c; font-weight: 600; }
+</style>
+</head>
+<body>
+  <h1>EVADE</h1>
+
+  <div id="game"><div class="status" id="status">Loading…</div></div>
+
+  <div class="help">
+    <p>
+      Move with <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> or
+      <kbd>←</kbd><kbd>↑</kbd><kbd>↓</kbd><kbd>→</kbd>
+      &nbsp;·&nbsp; <kbd>R</kbd> to restart after game over
+    </p>
+    <p class="dim">
+      You are the <span class="blue">blue</span> circle. <span class="red">Red</span> circles hunt you down
+      and get faster as your score climbs. +1 point for every second you survive.<br>
+      Everything wraps around the screen edges — one touch and it's over.
+    </p>
+  </div>
+
+<script>
+(() => {
+  'use strict';
+
+  // ---------------------------------------------------------------- config
+  const W = 680;
+  const H = 480;
+
+  const PLAYER_R = 13;
+  const ENEMY_R = 10;
+
+  // Things wrap once they are fully off-screen, so the play field is a torus
+  // slightly larger than the canvas.
+  const WRAP_M = 14;
+  const PERIOD_X = W + WRAP_M * 2;
+  const PERIOD_Y = H + WRAP_M * 2;
+
+  const PLAYER_SPEED = 240;       // px / s
+  const PLAYER_RESPONSE = 16;     // higher = snappier velocity changes
+
+  const ENEMY_BASE_SPEED = 70;    // px / s at score 0
+  const ENEMY_SPEED_PER_POINT = 1.5;
+  const ENEMY_SPEED_CAP = 230;
+  const ENEMY_STEER_GAIN = 4;     // how hard enemies correct toward the player
+  const ENEMY_ACCEL_FACTOR = 2.5; // max acceleration = speed * factor
+  const ENEMY_SEPARATION = ENEMY_R * 2.6;
+
+  const SPAWN_SAFE_DISTANCE = 200;
+  const BEST_KEY = 'evade.best';
+  const FONT = 'ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace';
+
+  const PHASER_SOURCES = [
+    'https://cdn.jsdelivr.net/npm/phaser@3.90.0/dist/phaser.min.js',
+    'https://cdnjs.cloudflare.com/ajax/libs/phaser/3.90.0/phaser.min.js',
+    'https://unpkg.com/phaser@3.90.0/dist/phaser.min.js'
+  ];
+
+  // --------------------------------------------------------------- helpers
+  const clamp = (v, lo, hi) => (v < lo ? lo : v > hi ? hi : v);
+
+  /** Shortest signed distance from a to b on a loop of the given period. */
+  function wrapDelta(d, period) {
+    d = ((d % period) + period) % period;
+    return d > period / 2 ? d - period : d;
+  }
+
+  /** Keep a coordinate inside [-WRAP_M, size + WRAP_M). */
+  function wrapCoord(v, size) {
+    const period = size + WRAP_M * 2;
+    if (v < -WRAP_M) return v + period;
+    if (v >= size + WRAP_M) return v - period;
+    return v;
+  }
+
+  /** Fades an object out as its centre moves past the edge, so glows don't pop. */
+  function edgeAlpha(x, y) {
+    const over = Math.max(0, -x, x - W, -y, y - H);
+    return clamp(1 - over / WRAP_M, 0, 1);
+  }
+
+  function loadBest() {
+    try { return parseInt(localStorage.getItem(BEST_KEY), 10) || 0; } catch (e) { return 0; }
+  }
+  function saveBest(v) {
+    try { localStorage.setItem(BEST_KEY, String(v)); } catch (e) { /* storage unavailable */ }
+  }
+
+  // ----------------------------------------------------------------- scene
+  function defineScene(Phaser) {
+    return class GameScene extends Phaser.Scene {
+      constructor() { super('game'); }
+
+      create() {
+        this.makeTextures();
+
+        this.best = loadBest();
+        this.elapsed = 0;
+        this.score = 0;
+        this.isOver = false;
+        this.spawnIn = 0.6;
+        this.trailIn = 0;
+        this.enemies = [];
+
+        this.add.image(W / 2, H / 2, 'bg');
+
+        // Particles: a faint trail behind the player and a burst on death.
+        this.trail = this.add.particles(0, 0, 'spark', {
+          lifespan: 360,
+          speed: 0,
+          scale: { start: 0.55, end: 0 },
+          alpha: { start: 0.3, end: 0 },
+          tint: 0x4da3ff,
+          blendMode: 'ADD',
+          emitting: false
+        }).setDepth(5);
+
+        this.burst = this.add.particles(0, 0, 'spark', {
+          lifespan: { min: 350, max: 800 },
+          speed: { min: 60, max: 300 },
+          scale: { start: 0.8, end: 0 },
+          alpha: { start: 1, end: 0 },
+          tint: [0x4da3ff, 0x9fd0ff, 0xffffff],
+          blendMode: 'ADD',
+          emitting: false
+        }).setDepth(15);
+
+        // Player: glow + body in a container so both move and fade together.
+        this.player = { x: W / 2, y: H / 2, vx: 0, vy: 0 };
+        this.playerGlow = this.add.image(0, 0, 'glowBlue').setBlendMode(Phaser.BlendModes.ADD);
+        this.playerBody = this.add.image(0, 0, 'player');
+        this.playerView = this.add.container(this.player.x, this.player.y, [this.playerGlow, this.playerBody]).setDepth(10);
+
+        this.tweens.add({
+          targets: this.playerGlow,
+          scale: { from: 0.85, to: 1.2 },
+          alpha: { from: 0.55, to: 1 },
+          duration: 900,
+          ease: 'Sine.easeInOut',
+          yoyo: true,
+          repeat: -1
+        });
+        this.tweens.add({
+          targets: this.playerBody,
+          scale: { from: 1, to: 1.07 },
+          duration: 900,
+          ease: 'Sine.easeInOut',
+          yoyo: true,
+          repeat: -1
+        });
+
+        // HUD
+        const hudStyle = { fontFamily: FONT, fontSize: '16px', color: '#d5def0' };
+        this.scoreText = this.add.text(14, 11, 'SCORE 0', hudStyle).setDepth(20);
+        this.bestText = this.add.text(W - 14, 11, 'BEST ' + this.best, hudStyle)
+          .setOrigin(1, 0).setAlpha(0.6).setDepth(20);
+        this.speedText = this.add.text(W / 2, 14, '', { fontFamily: FONT, fontSize: '12px', color: '#7c88a3' })
+          .setOrigin(0.5, 0).setDepth(20);
+        this.refreshSpeedText();
+
+        // Input
+        this.cursors = this.input.keyboard.createCursorKeys();
+        this.keys = this.input.keyboard.addKeys('W,A,S,D,R');
+
+        const onRestartKey = (event) => {
+          if (this.isOver && !event.repeat) this.scene.restart();
+        };
+        this.input.keyboard.on('keydown-R', onRestartKey);
+        this.events.once('shutdown', () => this.input.keyboard.off('keydown-R', onRestartKey));
+      }
+
+      // ------------------------------------------------------- textures
+      makeTextures() {
+        if (this.textures.exists('bg')) return; // survive scene restarts
+
+        const canvasTexture = (key, w, h, draw) => {
+          const tex = this.textures.createCanvas(key, w, h);
+          draw(tex.getContext());
+          tex.refresh();
+        };
+
+        const radial = (ctx, cx, cy, r, stops) => {
+          const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+          stops.forEach(([offset, color]) => g.addColorStop(offset, color));
+          return g;
+        };
+
+        const glow = (key, size, rgb, strength) => canvasTexture(key, size, size, (ctx) => {
+          const c = size / 2;
+          ctx.fillStyle = radial(ctx, c, c, c, [
+            [0, `rgba(${rgb},${strength})`],
+            [0.35, `rgba(${rgb},${strength * 0.45})`],
+            [1, `rgba(${rgb},0)`]
+          ]);
+          ctx.fillRect(0, 0, size, size);
+        });
+
+        const disc = (key, r, inner, outer, rim) => {
+          const size = r * 2 + 4;
+          canvasTexture(key, size, size, (ctx) => {
+            const c = size / 2;
+            ctx.beginPath();
+            ctx.arc(c, c, r, 0, Math.PI * 2);
+            ctx.fillStyle = radial(ctx, c - r * 0.3, c - r * 0.35, r * 1.4, [[0, inner], [1, outer]]);
+            ctx.fill();
+            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = rim;
+            ctx.beginPath();
+            ctx.arc(c, c, r - 0.75, 0, Math.PI * 2);
+            ctx.stroke();
+          });
+        };
+
+        disc('player', PLAYER_R, '#9fd0ff', '#2a7fff', 'rgba(200,228,255,0.55)');
+        disc('enemy', ENEMY_R, '#ff9a9a', '#f0263f', 'rgba(255,200,200,0.4)');
+        glow('glowBlue', 112, '70,150,255', 0.6);
+        glow('glowRed', 64, '255,60,80', 0.38);
+        glow('spark', 16, '255,255,255', 1);
+
+        canvasTexture('bg', W, H, (ctx) => {
+          ctx.fillStyle = '#0d1018';
+          ctx.fillRect(0, 0, W, H);
+
+          ctx.strokeStyle = 'rgba(120,150,220,0.05)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          for (let x = 20; x < W; x += 40) { ctx.moveTo(x + 0.5, 0); ctx.lineTo(x + 0.5, H); }
+          for (let y = 20; y < H; y += 40) { ctx.moveTo(0, y + 0.5); ctx.lineTo(W, y + 0.5); }
+          ctx.stroke();
+
+          const vignette = ctx.createRadialGradient(W / 2, H / 2, H * 0.3, W / 2, H / 2, W * 0.72);
+          vignette.addColorStop(0, 'rgba(0,0,0,0)');
+          vignette.addColorStop(1, 'rgba(0,0,0,0.5)');
+          ctx.fillStyle = vignette;
+          ctx.fillRect(0, 0, W, H);
+        });
+      }
+
+      // ----------------------------------------------------------- loop
+      update(time, deltaMs) {
+        if (this.isOver) return;
+
+        // Clamp so a hitch (or returning to the tab) can't teleport anything.
+        const dt = Math.min(deltaMs, 50) / 1000;
+
+        this.elapsed += dt;
+        const score = Math.floor(this.elapsed); // +1 per second survived
+        if (score !== this.score) {
+          this.score = score;
+          this.scoreText.setText('SCORE ' + score);
+          this.refreshSpeedText();
+        }
+
+        this.updatePlayer(dt);
+        this.updateSpawning(dt);
+        this.updateEnemies(dt);
+      }
+
+      updatePlayer(dt) {
+        const p = this.player;
+        const c = this.cursors;
+        const k = this.keys;
+
+        let ix = Number(c.right.isDown || k.D.isDown) - Number(c.left.isDown || k.A.isDown);
+        let iy = Number(c.down.isDown || k.S.isDown) - Number(c.up.isDown || k.W.isDown);
+        if (ix !== 0 && iy !== 0) { ix *= Math.SQRT1_2; iy *= Math.SQRT1_2; }
+
+        // Ease toward the target velocity for a touch of weight.
+        const blend = 1 - Math.exp(-PLAYER_RESPONSE * dt);
+        p.vx += (ix * PLAYER_SPEED - p.vx) * blend;
+        p.vy += (iy * PLAYER_SPEED - p.vy) * blend;
+
+        p.x = wrapCoord(p.x + p.vx * dt, W);
+        p.y = wrapCoord(p.y + p.vy * dt, H);
+
+        this.playerView.setPosition(p.x, p.y).setAlpha(edgeAlpha(p.x, p.y));
+
+        if (Math.hypot(p.vx, p.vy) > 60) {
+          this.trailIn -= dt;
+          if (this.trailIn <= 0) {
+            this.trailIn = 0.03;
+            this.trail.emitParticleAt(p.x, p.y, 1);
+          }
+        }
+      }
+
+      /** Enemy top speed rises with the score, up to a cap. */
+      enemySpeed() {
+        return Math.min(ENEMY_SPEED_CAP, ENEMY_BASE_SPEED + this.score * ENEMY_SPEED_PER_POINT);
+      }
+
+      refreshSpeedText() {
+        this.speedText.setText('ENEMY SPEED x' + (this.enemySpeed() / ENEMY_BASE_SPEED).toFixed(2));
+      }
+
+      updateSpawning(dt) {
+        this.spawnIn -= dt;
+        if (this.spawnIn > 0) return;
+
+        this.spawnIn = Math.max(0.7, 1.8 - this.score * 0.015);
+        const maxEnemies = Math.min(22, 4 + Math.floor(this.score / 6));
+        if (this.enemies.length < maxEnemies) this.spawnEnemy();
+      }
+
+      spawnEnemy() {
+        const p = this.player;
+        let x = 0;
+        let y = 0;
+
+        // Pick a point just outside a random edge. Because the field wraps,
+        // "far edge" can still be close to the player, so measure the wrapped
+        // distance and retry if it would be an unfair spawn.
+        for (let attempt = 0; attempt < 16; attempt++) {
+          const side = Phaser.Math.Between(0, 3);
+          if (side === 0) { x = -WRAP_M; y = Phaser.Math.FloatBetween(0, H); }
+          else if (side === 1) { x = W + WRAP_M - 1; y = Phaser.Math.FloatBetween(0, H); }
+          else if (side === 2) { x = Phaser.Math.FloatBetween(0, W); y = -WRAP_M; }
+          else { x = Phaser.Math.FloatBetween(0, W); y = H + WRAP_M - 1; }
+
+          const d = Math.hypot(wrapDelta(p.x - x, PERIOD_X), wrapDelta(p.y - y, PERIOD_Y));
+          if (d >= SPAWN_SAFE_DISTANCE) break;
+        }
+
+        const glow = this.add.image(0, 0, 'glowRed').setBlendMode(Phaser.BlendModes.ADD);
+        const body = this.add.image(0, 0, 'enemy');
+        const view = this.add.container(x, y, [glow, body]).setDepth(8).setAlpha(0);
+
+        const factor = Phaser.Math.FloatBetween(0.85, 1.1); // a little personality
+        const dx = wrapDelta(p.x - x, PERIOD_X);
+        const dy = wrapDelta(p.y - y, PERIOD_Y);
+        const dist = Math.hypot(dx, dy) || 1;
+        const speed = this.enemySpeed() * factor * 0.6;
+
+        this.enemies.push({ view, x, y, vx: (dx / dist) * speed, vy: (dy / dist) * speed, factor });
+      }
+
+      updateEnemies(dt) {
+        const p = this.player;
+        const list = this.enemies;
+        const baseSpeed = this.enemySpeed();
+        const hitDistance = PLAYER_R + ENEMY_R - 2; // slightly forgiving
+        let hit = false;
+
+        for (let i = 0; i < list.length; i++) {
+          const e = list[i];
+          const maxSpeed = baseSpeed * e.factor;
+
+          // Seek: steer toward the player along the shortest (wrapped) path.
+          const dx = wrapDelta(p.x - e.x, PERIOD_X);
+          const dy = wrapDelta(p.y - e.y, PERIOD_Y);
+          const dist = Math.hypot(dx, dy) || 1;
+          let ax = ((dx / dist) * maxSpeed - e.vx) * ENEMY_STEER_GAIN;
+          let ay = ((dy / dist) * maxSpeed - e.vy) * ENEMY_STEER_GAIN;
+
+          // Light separation so the pack doesn't collapse into a single dot.
+          for (let j = 0; j < list.length; j++) {
+            if (j === i) continue;
+            const o = list[j];
+            const sx = wrapDelta(e.x - o.x, PERIOD_X);
+            const sy = wrapDelta(e.y - o.y, PERIOD_Y);
+            const sd = Math.hypot(sx, sy);
+            if (sd < ENEMY_SEPARATION && sd > 0.001) {
+              const push = (1 - sd / ENEMY_SEPARATION) * maxSpeed * 6;
+              ax += (sx / sd) * push;
+              ay += (sy / sd) * push;
+            }
+          }
+
+          // Limited acceleration gives enemies momentum the player can exploit.
+          const maxAccel = maxSpeed * ENEMY_ACCEL_FACTOR;
+          const accel = Math.hypot(ax, ay);
+          if (accel > maxAccel) { ax *= maxAccel / accel; ay *= maxAccel / accel; }
+
+          e.vx += ax * dt;
+          e.vy += ay * dt;
+          const speed = Math.hypot(e.vx, e.vy);
+          if (speed > maxSpeed) { e.vx *= maxSpeed / speed; e.vy *= maxSpeed / speed; }
+
+          e.x = wrapCoord(e.x + e.vx * dt, W);
+          e.y = wrapCoord(e.y + e.vy * dt, H);
+          e.view.setPosition(e.x, e.y).setAlpha(edgeAlpha(e.x, e.y));
+
+          const hx = wrapDelta(p.x - e.x, PERIOD_X);
+          const hy = wrapDelta(p.y - e.y, PERIOD_Y);
+          if (hx * hx + hy * hy < hitDistance * hitDistance) hit = true;
+        }
+
+        if (hit) this.gameOver();
+      }
+
+      // ------------------------------------------------------ game over
+      gameOver() {
+        this.isOver = true;
+
+        const isNewBest = this.score > this.best;
+        if (isNewBest) {
+          this.best = this.score;
+          saveBest(this.best);
+          this.bestText.setText('BEST ' + this.best);
+        }
+
+        const p = this.player;
+        this.playerView.setVisible(false);
+        this.burst.explode(40, clamp(p.x, 0, W), clamp(p.y, 0, H));
+        this.cameras.main.shake(260, 0.012);
+        this.cameras.main.flash(200, 255, 80, 100);
+
+        const dim = this.add.rectangle(W / 2, H / 2, W, H, 0x05070b, 0.66);
+        const title = this.add.text(W / 2, H / 2 - 62, 'GAME OVER', {
+          fontFamily: FONT, fontSize: '46px', fontStyle: 'bold', color: '#ff5d6c'
+        }).setOrigin(0.5);
+        const result = this.add.text(W / 2, H / 2 + 2, 'SCORE ' + this.score, {
+          fontFamily: FONT, fontSize: '24px', color: '#e6ecf8'
+        }).setOrigin(0.5);
+        const best = this.add.text(W / 2, H / 2 + 34, isNewBest ? 'NEW BEST!' : 'BEST ' + this.best, {
+          fontFamily: FONT, fontSize: '14px', color: isNewBest ? '#ffd166' : '#7c88a3'
+        }).setOrigin(0.5);
+        const prompt = this.add.text(W / 2, H / 2 + 86, 'Press R to restart', {
+          fontFamily: FONT, fontSize: '16px', color: '#9fd0ff'
+        }).setOrigin(0.5);
+
+        const panel = this.add.container(0, 0, [dim, title, result, best, prompt]).setDepth(30).setAlpha(0);
+        this.tweens.add({ targets: panel, alpha: 1, duration: 320, delay: 180 });
+        this.tweens.add({
+          targets: prompt,
+          alpha: { from: 1, to: 0.35 },
+          duration: 700,
+          ease: 'Sine.easeInOut',
+          yoyo: true,
+          repeat: -1
+        });
+      }
+    };
+  }
+
+  // ------------------------------------------------------------------ boot
+  function start() {
+    const Phaser = window.Phaser;
+    const status = document.getElementById('status');
+    if (status) status.remove();
+
+    new Phaser.Game({
+      type: Phaser.AUTO,
+      width: W,
+      height: H,
+      parent: 'game',
+      backgroundColor: '#0d1018',
+      banner: false,
+      audio: { noAudio: true },
+      scene: defineScene(Phaser)
+    });
+  }
+
+  // Load Phaser 3 from a CDN, falling back to mirrors if one is unreachable.
+  function loadPhaser(index) {
+    if (window.Phaser) { start(); return; }
+    if (index >= PHASER_SOURCES.length) {
+      document.getElementById('status').textContent =
+        'Could not load Phaser 3 from the CDN. Check your internet connection and reload the page.';
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = PHASER_SOURCES[index];
+    script.onload = () => (window.Phaser ? start() : loadPhaser(index + 1));
+    script.onerror = () => { script.remove(); loadPhaser(index + 1); };
+    document.head.appendChild(script);
+  }
+
+  loadPhaser(0);
+})();
+</script>
+</body>
+</html>

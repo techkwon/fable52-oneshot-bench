@@ -1,0 +1,1120 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Claude — Motion Reel 2026</title>
+<style>
+  html,body{margin:0;height:100%;background:#050506;overflow:hidden}
+  #stage{position:fixed;inset:0;display:grid;place-items:center;cursor:pointer}
+  canvas{display:block;background:#0d0d10}
+  #hint{position:fixed;left:50%;top:18px;transform:translateX(-50%);
+    font:600 11px/1 ui-monospace,"SF Mono",Menlo,Consolas,monospace;letter-spacing:.16em;
+    color:#f3eee3;background:rgba(13,13,16,.72);border:1px solid rgba(243,238,227,.28);
+    padding:9px 14px 9px 12px;border-radius:999px;cursor:pointer;white-space:nowrap;
+    -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);transition:opacity .6s;user-select:none}
+  #hint i{display:inline-block;width:7px;height:7px;border-radius:50%;background:#ff4a1c;margin-right:9px;
+    animation:bl .9375s steps(2,jump-none) infinite}
+  #hint.off{opacity:0;pointer-events:none}
+  @keyframes bl{from{opacity:1}to{opacity:.25}}
+</style>
+</head>
+<body>
+<div id="stage"><canvas id="c" width="1920" height="1080"></canvas></div>
+<div id="hint"><i></i><span>CLICK FOR SOUND · SPACE TO PAUSE</span></div>
+<script>
+(() => {
+'use strict';
+
+/* ───────────────────────── constants ───────────────────────── */
+const W = 1920, H = 1080, DUR = 15, BPM = 128, BEAT = 60 / BPM, BAR = BEAT * 4;
+const B = n => n * BEAT;
+const PI = Math.PI, TAU = PI * 2;
+const INK = '#0d0d10', PAPER = '#f3eee3', ORANGE = '#ff4a1c', BLUE = '#2a3cff', LIME = '#c9f73a', PINK = '#ff9ad5';
+
+const cl = (x, a = 0, b = 1) => x < a ? a : x > b ? b : x;
+const lerp = (a, b, t) => a + (b - a) * t;
+const pr = (t, start, dur) => cl((t - start) / dur);
+const mod = (a, n) => ((a % n) + n) % n;
+const pad2 = n => (n < 10 ? '0' : '') + n;
+
+const E = {
+  inCubic: x => x * x * x,
+  outCubic: x => 1 - Math.pow(1 - x, 3),
+  inOutCubic: x => x < .5 ? 4 * x * x * x : 1 - Math.pow(-2 * x + 2, 3) / 2,
+  inQuart: x => x * x * x * x,
+  inQuint: x => x * x * x * x * x,
+  inExpo: x => x <= 0 ? 0 : Math.pow(2, 10 * x - 10),
+  outExpo: x => x >= 1 ? 1 : 1 - Math.pow(2, -10 * x),
+  outBack: (x, s = 1.70158) => 1 + (s + 1) * Math.pow(x - 1, 3) + s * Math.pow(x - 1, 2),
+  spring: x => 1 - Math.exp(-6.5 * x) * Math.cos(13 * x),
+};
+const invInOutCubic = y => y < .5 ? Math.cbrt(y / 4) : 1 - Math.cbrt((1 - y) / 4);
+
+function rng(seed) {
+  let a = seed >>> 0;
+  return () => {
+    a |= 0; a = a + 0x6D2B79F5 | 0;
+    let t = Math.imul(a ^ a >>> 15, 1 | a);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+/* ───────────────────────── canvas ───────────────────────── */
+const cv = document.getElementById('c');
+const ctx = cv.getContext('2d', { alpha: false });
+const mctx = document.createElement('canvas').getContext('2d');
+let SC = 1;
+function resize() {
+  const ww = innerWidth, wh = innerHeight;
+  let cw = ww, ch = ww * 9 / 16;
+  if (ch > wh) { ch = wh; cw = wh * 16 / 9; }
+  const dpr = Math.min(window.devicePixelRatio || 1, 2, 2560 / cw);
+  cv.style.width = cw + 'px'; cv.style.height = ch + 'px';
+  cv.width = Math.max(2, Math.round(cw * dpr)); cv.height = Math.max(2, Math.round(ch * dpr));
+  SC = cv.width / W;
+}
+addEventListener('resize', () => { resize(); if (frozen != null || !playing) render(curT()); });
+
+/* ───────────────────────── type ───────────────────────── */
+const SANS = 'system-ui,-apple-system,"Segoe UI","Helvetica Neue",Arial,sans-serif';
+const MONO = 'ui-monospace,"SF Mono",SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace';
+const SERIF = '"Didot","Bodoni 72","Bodoni MT","Playfair Display",Georgia,"Times New Roman",serif';
+const fSans = (s, w = 900) => `${w} ${s}px ${SANS}`;
+const LS = 'letterSpacing' in ctx;
+mctx.font = fSans(100);
+const CAP = (mctx.measureText('H').actualBoundingBoxAscent || 72) / 100;
+
+const _lc = new Map();
+function baseLayout(str, weight) {
+  const k = weight + '|' + str;
+  let L = _lc.get(k);
+  if (!L) {
+    mctx.font = fSans(100, weight);
+    const xs = [], ws = [];
+    for (let i = 0; i < str.length; i++) {
+      xs.push(mctx.measureText(str.slice(0, i)).width);
+      ws.push(mctx.measureText(str[i]).width);
+    }
+    L = { xs, ws, w: mctx.measureText(str).width };
+    _lc.set(k, L);
+  }
+  return L;
+}
+function word(str, size, weight = 900) {
+  const L = baseLayout(str, weight), s = size / 100;
+  return { xs: L.xs.map(x => x * s), ws: L.ws.map(w => w * s), w: L.w * s };
+}
+const fitSize = (str, width, weight = 900) => 100 * width / baseLayout(str, weight).w;
+
+function monoText(str, x, y, size, o = {}) {
+  ctx.font = `${o.w || 500} ${size}px ${MONO}`;
+  ctx.textAlign = o.align || 'left'; ctx.textBaseline = 'alphabetic';
+  if (LS) ctx.letterSpacing = (o.ls != null ? o.ls : size * .12) + 'px';
+  if (o.color) ctx.fillStyle = o.color;
+  const ga = ctx.globalAlpha;
+  if (o.alpha != null) ctx.globalAlpha = ga * o.alpha;
+  ctx.fillText(str, x, y);
+  ctx.globalAlpha = ga;
+  if (LS) ctx.letterSpacing = '0px';
+}
+const typeOn = (str, p) => str.slice(0, Math.round(str.length * cl(p)));
+
+/* per-letter masked rise: the workhorse title reveal */
+function riseWord(str, x, base, size, t, o) {
+  const L = word(str, size, o.weight || 900), cap = CAP * size;
+  const x0 = o.align === 'c' ? x - L.w / 2 : o.align === 'r' ? x - L.w : x;
+  const n = str.length;
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(x0 - size, base - cap - size * .04, L.w + size * 2, cap + size * .07);
+  ctx.clip();
+  ctx.font = fSans(size, o.weight || 900);
+  ctx.fillStyle = o.color; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  for (let i = 0; i < n; i++) {
+    const k = o.rev ? n - 1 - i : i;
+    const pin = E.outExpo(pr(t, o.tin + k * (o.stag != null ? o.stag : .03), o.din || .4));
+    const pout = o.tout != null ? E.inCubic(pr(t, o.tout + k * (o.stagOut != null ? o.stagOut : .015), o.dout || .15)) : 0;
+    if (pin <= 0 || pout >= 1) continue;
+    const y = base + (1 - pin) * cap * 1.2 + pout * cap * 1.2 * (o.outDir || 1);
+    ctx.fillText(str[i], x0 + L.xs[i], y);
+  }
+  ctx.restore();
+  return { x0, w: L.w, cap };
+}
+
+/* ───────────────────────── helpers ───────────────────────── */
+function bg(c) { ctx.fillStyle = c; ctx.fillRect(-120, -120, W + 240, H + 240); }
+function disc(x, y, r) { ctx.beginPath(); ctx.arc(x, y, Math.max(0, r), 0, TAU); ctx.fill(); }
+function rrect(x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y); ctx.arcTo(x + w, y, x + w, y + h, r); ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r); ctx.arcTo(x, y, x + w, y, r); ctx.closePath();
+}
+
+/* ═════════════════════ 00 · INTRO — the bouncing ball ═════════════════════ */
+const G1 = 716, R1 = 54, T1 = B(1), T2 = B(2), T3 = B(3);
+function ballY(t) {
+  const top = G1 - R1;
+  if (t < T1) { const u = Math.max(0, t) / T1; return lerp(-150, top, u * u); }
+  if (t < T2) { const u = (t - T1) / BEAT; return top - 430 * 4 * u * (1 - u); }
+  if (t < T3) { const u = (t - T2) / BEAT; return top - 250 * 4 * u * (1 - u); }
+  return lerp(top, 540, E.outCubic(pr(t, T3, .34)));
+}
+function ball(t) {
+  const y = ballY(t), v = (ballY(t + .004) - ballY(t - .004)) / .008;
+  let last = -1;
+  if (t >= T1) last = T1; if (t >= T2) last = T2; if (t >= T3) last = T3;
+  const sq = last < 0 ? 0 : .42 * Math.exp(-(t - last) / .045);
+  const st = cl(Math.abs(v) / 5200, 0, .3);
+  const sy = 1 + st - sq;
+  return { y: y + R1 * sq, sy, sx: 1 / sy };
+}
+function s1(t) {
+  bg(INK);
+  const out = pr(t, B(3.45), .2);
+  // registration dots
+  const ga = E.outCubic(pr(t, 0, .7)) * (1 - out);
+  if (ga > 0) {
+    ctx.fillStyle = PAPER;
+    for (let y = 60; y < H; y += 80) for (let x = 40; x < W; x += 80) {
+      const d = Math.hypot(x - 960, y - G1) / 1300;
+      ctx.globalAlpha = .13 * ga * cl((t - d * .5) / .3);
+      ctx.fillRect(x - 1.5, y - 1.5, 3, 3);
+    }
+    ctx.globalAlpha = 1;
+  }
+  // floor glow
+  const by = ballY(t), hgt = cl((G1 - R1 - by) / 460);
+  if (t < T3 + .15) {
+    ctx.save(); ctx.translate(960, G1); ctx.scale(1, .16);
+    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, 330);
+    g.addColorStop(0, `rgba(255,74,28,${(.34 * (1 - hgt) * (1 - pr(t, T3, .15))).toFixed(3)})`);
+    g.addColorStop(1, 'rgba(255,74,28,0)');
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(0, 0, 330, 0, TAU); ctx.fill();
+    ctx.restore();
+  }
+  // words rise out of the floor
+  riseWord('MOTION', 960 - 118, G1 - 20, 150, t, { align: 'r', rev: true, tin: T1 + .02, stag: .028, din: .42, tout: T3, dout: .2, stagOut: .016, color: PAPER });
+  riseWord('REEL', 960 + 118, G1 - 20, 150, t, { tin: T2 + .02, stag: .028, din: .42, tout: T3, dout: .2, stagOut: .016, color: PAPER });
+  // the floor line, with a damped wave from every impact
+  const L = 720 * E.outExpo(pr(t, T1, .5)) * (1 - E.inCubic(pr(t, T3 + .02, .22)));
+  if (L > 1) {
+    ctx.strokeStyle = PAPER; ctx.lineWidth = 3; ctx.lineCap = 'round';
+    ctx.beginPath();
+    const n = Math.ceil(2 * L / 10);
+    for (let i = 0; i <= n; i++) {
+      const x = -L + 2 * L * i / n, d = Math.abs(x);
+      let y = 0;
+      const amp = [15, 9, 13], tt = [T1, T2, T3];
+      for (let k = 0; k < 3; k++) {
+        const dt = t - tt[k];
+        if (dt > 0) y += amp[k] * Math.exp(-dt * 7) * Math.sin(d * .03 - dt * 38) * Math.exp(-d / 260);
+      }
+      i ? ctx.lineTo(960 + x, G1 + y) : ctx.moveTo(960 + x, G1 + y);
+    }
+    ctx.stroke();
+  }
+  // captions
+  const ca = pr(t, T1 + .12, .25) * (1 - pr(t, T3, .12));
+  if (ca > 0) {
+    ctx.fillStyle = PAPER;
+    monoText(typeOn('FIG. 00 — THE BOUNCING BALL', pr(t, T1 + .1, .35)), 242, G1 + 46, 15, { alpha: .55 * ca });
+    const bs = ball(t);
+    monoText(`Y ${String(Math.max(0, Math.round(G1 - R1 - by))).padStart(3, '0')}   SQUASH ${bs.sy.toFixed(2)}`, 1678, G1 + 46, 15, { align: 'right', alpha: .55 * ca });
+  }
+  // impact bursts
+  [T1, T2, T3].forEach((T, k) => {
+    const p = pr(t, T, .36);
+    if (p <= 0 || p >= 1) return;
+    const n = 9, r0 = R1 + 22 + [120, 80, 150][k] * E.outExpo(p), len = [46, 30, 54][k] * (1 - E.outCubic(p));
+    ctx.strokeStyle = k === 1 ? PAPER : ORANGE; ctx.lineWidth = 5; ctx.lineCap = 'round';
+    ctx.beginPath();
+    for (let i = 0; i < n; i++) {
+      const a = -PI * (i + .5) / n, c = Math.cos(a), s = Math.sin(a);
+      ctx.moveTo(960 + c * r0, G1 - 8 + s * r0 * .8); ctx.lineTo(960 + c * (r0 + len), G1 - 8 + s * (r0 + len) * .8);
+    }
+    ctx.stroke();
+  });
+  // ball + smear trail, then it swallows the frame
+  const grow = E.inQuint(pr(t, B(3.3), B(.7)));
+  ctx.fillStyle = ORANGE;
+  if (grow < .002) {
+    for (let g = 5; g >= 0; g--) {
+      const tt = t - g * .013;
+      if (tt < -.05) continue;
+      const b = ball(tt);
+      ctx.globalAlpha = g ? .16 * (1 - g / 6) : 1;
+      ctx.beginPath(); ctx.ellipse(960, b.y, R1 * b.sx, R1 * b.sy, 0, 0, TAU); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+  } else {
+    disc(960, ballY(t), R1 + (1320 - R1) * grow);
+  }
+}
+
+/* ═════════════════════ 01 · TYPE — I MAKE / THINGS / MOVE ═════════════════════ */
+const SPEED = (() => { const r = rng(5); return Array.from({ length: 18 }, () => ({ y: 40 + r() * 1000, len: 160 + r() * 520, sp: 2600 + r() * 2600, off: r() * 3000, w: 2 + r() * 5 })); })();
+function s2(t) {
+  const b = t / BEAT;
+  if (b < 6) {
+    bg(ORANGE);
+    ctx.fillStyle = INK;
+    if (b < 5) {
+      const size = Math.min(fitSize('I MAKE', 1480), 480), cap = CAP * size, base = 540 + cap / 2 - 14;
+      const m = riseWord('I MAKE', 960, base, size, t, { align: 'c', tin: B(4), stag: .032, din: .42, tout: B(4.74), dout: .11, stagOut: .008, outDir: -1, color: INK });
+      const a = E.outExpo(pr(t, B(4) + .1, .45)), z = E.inCubic(pr(t, B(4.72), .12));
+      ctx.fillStyle = INK;
+      ctx.fillRect(m.x0 + m.w * z, base + 34, m.w * (a - z), 12);
+    } else {
+      const size = Math.min(fitSize('THINGS', 1560), 480), L = word('THINGS', size), cap = CAP * size, base = 540 + cap / 2, x0 = 960 - L.w / 2;
+      ctx.font = fSans(size); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+      for (let i = 0; i < 6; i++) {
+        const pin = E.outBack(pr(t, B(5) + i * .022, .3), 2.4), pout = E.inCubic(pr(t, B(5.76) + i * .008, .1));
+        if (pin <= 0 || pout >= 1) continue;
+        ctx.save();
+        ctx.translate(x0 + L.xs[i], base);
+        if (pout > 0) { ctx.translate(0, -cap); ctx.scale(1, 1 - pout); ctx.translate(0, cap); }
+        else ctx.scale(1, Math.max(.001, pin));
+        ctx.fillText('THINGS'[i], 0, 0);
+        ctx.restore();
+      }
+    }
+    return;
+  }
+  // MOVE
+  bg(INK);
+  const dt = t - B(6);
+  const size = Math.min(fitSize('MOVE', 1400), 500), L = word('MOVE', size), cap = CAP * size, base = 540 + cap / 2, x0 = 960 - L.w / 2;
+  const slam = 1 + 1.7 * (1 - E.outExpo(pr(t, B(6), .3)));
+  const sh = 16 * Math.exp(-dt * 12);
+  const spread = E.outExpo(pr(t, B(6.45), .45)) * (1 - E.inCubic(pr(t, B(7.4), .16)));
+  const kick7 = t >= B(7) ? Math.exp(-(t - B(7)) * 9) : 0;
+  ctx.save();
+  ctx.translate(Math.sin(t * 190) * sh, Math.cos(t * 233) * sh);
+  // speed lines
+  if (spread > 0) {
+    ctx.fillStyle = PAPER;
+    for (const s of SPEED) {
+      const x = W + 300 - mod(s.off + t * s.sp, W + 1400);
+      ctx.globalAlpha = .16 * spread;
+      ctx.fillRect(x, s.y, s.len, s.w);
+    }
+    ctx.globalAlpha = 1;
+  }
+  ctx.translate(960, 540); ctx.scale(slam, slam); ctx.translate(-960, -540);
+  ctx.font = fSans(size); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic';
+  const track = i => (i - 1.5) * 46 * kick7;
+  const ocx = x0 + L.xs[1] + L.ws[1] / 2, ocy = base - cap / 2, orad = cap * .5;
+  // outlined echoes, waving
+  if (spread > .001) {
+    ctx.strokeStyle = PAPER; ctx.lineWidth = 2.5; ctx.lineJoin = 'round';
+    for (let k = 4; k >= 1; k--) for (const sg of [-1, 1]) {
+      const oy = sg * k * cap * .47 * spread, ox = Math.sin(t * 9 - k * .85) * 56 * spread * sg;
+      ctx.globalAlpha = (1 - k / 5.5) * Math.min(1, spread * 3);
+      for (const i of [0, 2, 3]) ctx.strokeText('MOVE'[i], x0 + L.xs[i] + ox + track(i), base + oy);
+      ctx.beginPath(); ctx.arc(ocx + ox + track(1), ocy + oy, orad - 1, 0, TAU); ctx.stroke();
+    }
+    ctx.globalAlpha = 1;
+  }
+  // main letters, each leaving its own way
+  const exits = [[-1, .15, -.5], null, [0, 1, .5], [1, -.1, .45]], delay = [0, 0, .035, .07];
+  ctx.fillStyle = PAPER;
+  for (const i of [0, 2, 3]) {
+    const e = E.inQuart(pr(t, B(7.5) + delay[i], .2));
+    if (e >= 1) continue;
+    const cx = x0 + L.xs[i] + L.ws[i] / 2 + track(i), cy = base - cap / 2;
+    ctx.save();
+    ctx.translate(cx + exits[i][0] * 1700 * e, cy + exits[i][1] * 1100 * e);
+    ctx.rotate(exits[i][2] * e);
+    ctx.fillText('MOVE'[i], -L.ws[i] / 2, cap / 2);
+    ctx.restore();
+  }
+  // the O is the dot — it survives the cut
+  const pd = E.inOutCubic(pr(t, B(7.45), B(.55)));
+  ctx.fillStyle = ORANGE;
+  disc(lerp(ocx + track(1), 1020, pd), lerp(ocy, 540, pd), lerp(orad, 60, pd));
+  ctx.restore();
+}
+
+/* ═════════════════════ 02 · SYSTEM — 16×9 tile grid ═════════════════════ */
+const TILES = (() => {
+  const r = rng(2026), out = [];
+  const pick = a => a[(r() * a.length) | 0];
+  const types = [0, 0, 1, 1, 1, 2, 2, 3, 3, 4, 5, 6, 7, 8, 8, 9];
+  const mk = () => {
+    const q = r();
+    const bgc = q < .52 ? PAPER : q < .68 ? INK : q < .78 ? BLUE : q < .87 ? ORANGE : q < .94 ? LIME : PINK;
+    const fg = bgc === PAPER ? pick([INK, INK, INK, ORANGE, BLUE, PINK]) : bgc === INK ? pick([PAPER, PAPER, ORANGE, LIME, PINK, BLUE]) : pick([INK, PAPER]);
+    return { type: pick(types), rot: (r() * 4) | 0, bg: bgc, fg };
+  };
+  for (let row = 0; row < 9; row++) for (let c = 0; c < 16; c++) {
+    const cx = c * 120 + 60, cy = row * 120 + 60, hero = c === 8 && row === 4;
+    const d = Math.hypot(cx - 1020, cy - 540) / 1130;
+    const pats = hero
+      ? [{ type: -1, rot: 0, bg: PAPER, fg: ORANGE }, { type: -1, rot: 0, bg: INK, fg: ORANGE }, { type: -1, rot: 0, bg: PAPER, fg: ORANGE }]
+      : [mk(), mk(), mk()];
+    out.push({ cx, cy, d, hero, pats });
+  }
+  return out;
+})();
+function tileShape(type) {
+  const h = 60;
+  if (type < 0) return;
+  ctx.beginPath();
+  switch (type) {
+    case 0: ctx.arc(0, 0, h, 0, TAU); break;
+    case 1: ctx.moveTo(-h, -h); ctx.arc(-h, -h, 2 * h, 0, PI / 2); ctx.closePath(); break;
+    case 2: ctx.arc(0, -h, h, 0, PI); ctx.closePath(); break;
+    case 3: ctx.moveTo(-h, -h); ctx.lineTo(h, -h); ctx.lineTo(-h, h); ctx.closePath(); break;
+    case 4: ctx.moveTo(-h, -h); ctx.arc(-h, -h, h, 0, PI / 2); ctx.closePath(); ctx.moveTo(h, h); ctx.arc(h, h, h, PI, PI * 1.5); ctx.closePath(); break;
+    case 5: ctx.arc(0, 0, h, 0, TAU); ctx.moveTo(h * .62, 0); ctx.arc(0, 0, h * .62, 0, TAU, true); ctx.moveTo(h * .28, 0); ctx.arc(0, 0, h * .28, 0, TAU); break;
+    case 6: ctx.rect(-h, -h, 2 * h, h * .4); ctx.rect(-h, -h * .2, 2 * h, h * .4); ctx.rect(-h, h * .6, 2 * h, h * .4); break;
+    case 7: ctx.rect(-h, -h, 2 * h, h); break;
+    case 8: ctx.arc(-h, -h, 2 * h, 0, PI / 2); ctx.arc(-h, -h, h, PI / 2, 0, true); ctx.closePath(); break;
+    case 9: ctx.arc(0, 0, h * .36, 0, TAU); break;
+  }
+  ctx.fill();
+}
+function s3(t) {
+  const b = t / BEAT;
+  bg(b < 11 ? INK : BLUE);
+  for (const T of TILES) {
+    const pop = E.outBack(pr(t, B(8) + T.d * .4, .32), 1.4);
+    if (pop <= 0) continue;
+    const f1 = E.inOutCubic(pr(t, B(9) + T.d * .28, .32)), f2 = E.inOutCubic(pr(t, B(10) + T.d * .28, .32));
+    const sh = E.inOutCubic(pr(t, B(11) + T.d * .2, .24));
+    if (sh > 0) { ctx.fillStyle = T.hero ? ORANGE : PAPER; disc(T.cx, T.cy, 5); }
+    if (sh >= 1) continue;
+    let pat = T.pats[0], sx = 1, sy = 1;
+    if (f2 > 0) { pat = f2 < .5 ? T.pats[1] : T.pats[2]; sy = Math.abs(Math.cos(f2 * PI)); }
+    else if (f1 > 0) { pat = f1 < .5 ? T.pats[0] : T.pats[1]; sx = Math.abs(Math.cos(f1 * PI)); }
+    const s = pop * (1 - sh);
+    ctx.save();
+    ctx.translate(T.cx, T.cy);
+    ctx.scale(Math.max(.001, sx * s), Math.max(.001, sy * s));
+    if (sh > 0) ctx.rotate(sh * PI / 2);
+    ctx.beginPath(); ctx.rect(-60.4, -60.4, 120.8, 120.8); ctx.clip();
+    ctx.fillStyle = pat.bg; ctx.fillRect(-61, -61, 122, 122);
+    ctx.rotate(pat.rot * PI / 2);
+    ctx.fillStyle = pat.fg;
+    tileShape(pat.type);
+    ctx.restore();
+  }
+  // the dot holds its place while the system assembles around it
+  ctx.fillStyle = ORANGE;
+  disc(1020, 540, lerp(60, 5, E.inOutCubic(pr(t, B(11), .24))));
+  // title slab, snapped to the grid
+  const sin = E.outExpo(pr(t, B(8.55), .4)), sout = E.inOutCubic(pr(t, B(10.62), .26));
+  if (sin > 0 && sout < 1) {
+    const xa = 120 + 720 * sout, xb = 120 + 720 * sin;
+    ctx.save();
+    ctx.fillStyle = INK; ctx.fillRect(xa, 720, xb - xa, 240);
+    ctx.beginPath(); ctx.rect(xa, 720, xb - xa, 240); ctx.clip();
+    const size = fitSize('SYSTEM', 640), cap = CAP * size;
+    riseWord('SYSTEM', 160, 720 + 138 + cap / 2, size, t, { tin: B(8.7), stag: .028, din: .42, color: PAPER });
+    ctx.fillStyle = PAPER;
+    monoText(typeOn('16 × 9 GRID — 144 TILES — 1 RULE', pr(t, B(8.85), .3)), 162, 762, 14, { alpha: .6 });
+    ctx.restore();
+  }
+}
+
+/* ═════════════════════ 03 · DEPTH — morphing point cloud ═════════════════════ */
+const NU = 72, NV = 20, NPT = NU * NV;
+const SH = (() => {
+  const s0 = new Float32Array(NPT * 3), s1 = new Float32Array(NPT * 3), s2 = new Float32Array(NPT * 3), s3 = new Float32Array(NPT * 3);
+  for (let j = 0; j < NV; j++) for (let i = 0; i < NU; i++) {
+    const o = (j * NU + i) * 3;
+    // flat: stacked on the tile centres of the previous scene
+    s0[o] = Math.floor(i / NU * 16) * 120 + 60 - 960; s0[o + 1] = Math.floor(j / NV * 9) * 120 + 60 - 540; s0[o + 2] = 0;
+    // sphere
+    const th = i / NU * TAU, ph = (j + .5) / NV * PI, R = 345;
+    s1[o] = R * Math.sin(ph) * Math.cos(th); s1[o + 1] = -R * Math.cos(ph); s1[o + 2] = R * Math.sin(ph) * Math.sin(th);
+    // torus
+    const tb = j / NV * TAU, RR = 300, rr = 118;
+    s2[o] = (RR + rr * Math.cos(tb)) * Math.cos(th); s2[o + 1] = rr * Math.sin(tb); s2[o + 2] = (RR + rr * Math.cos(tb)) * Math.sin(th);
+    // trefoil knot tube
+    const K = 98, s = th;
+    const cx = (Math.sin(s) + 2 * Math.sin(2 * s)) * K, cy = (Math.cos(s) - 2 * Math.cos(2 * s)) * K, cz = -Math.sin(3 * s) * K * 1.25;
+    let tx = Math.cos(s) + 4 * Math.cos(2 * s), ty = -Math.sin(s) + 4 * Math.sin(2 * s), tz = -3 * Math.cos(3 * s) * 1.25;
+    const tl = Math.hypot(tx, ty, tz); tx /= tl; ty /= tl; tz /= tl;
+    let nx = ty, ny = -tx, nz = 0; const nl = Math.hypot(nx, ny); nx /= nl; ny /= nl;
+    const bx = ty * nz - tz * ny, by = tz * nx - tx * nz, bz = tx * ny - ty * nx;
+    const tr = 44, ca = Math.cos(tb), sa = Math.sin(tb);
+    s3[o] = cx + tr * (ca * nx + sa * bx); s3[o + 1] = cy + tr * (ca * ny + sa * by); s3[o + 2] = cz + tr * (ca * nz + sa * bz);
+  }
+  return [s0, s1, s2, s3];
+})();
+const PX = new Float32Array(NPT), PY = new Float32Array(NPT), PS = new Float32Array(NPT), PZ = new Float32Array(NPT);
+const FIG3 = ['SPHERE', 'TORUS', 'TREFOIL KNOT', 'TERRAIN'];
+function s4(t) {
+  const b = t / BEAT;
+  bg(BLUE);
+  const k = Math.min(3, Math.floor(b - 12)), Tk = B(12 + k);
+  const A = SH[k], Bs = k < 3 ? SH[k + 1] : null;
+  const first = E.inOutCubic(pr(t, B(12), .45));
+  const F = E.inOutCubic(pr(t, B(15.5), B(.5)));
+  const ry = .8 * (t - B(12)) + 1.15 * (Math.floor(b - 12) + E.outExpo(b % 1));
+  const rx = (.42 * first + (k === 3 ? .22 * E.inOutCubic(pr(t, B(15), .35)) : 0) + .07 * Math.sin(t * 1.7) * first) * (1 - F);
+  const cy = Math.cos(ry), sy = Math.sin(ry), cx = Math.cos(rx), sx = Math.sin(rx);
+  const f = 1700, zoom = 1 + .05 * Math.exp(-(b % 1) * 5);
+  for (let j = 0; j < NV; j++) for (let i = 0; i < NU; i++) {
+    const n = j * NU + i, o = n * 3;
+    const p = E.inOutCubic(pr(t, Tk + i / NU * .1 + j / NV * .07, .33));
+    let x1, y1, z1;
+    if (Bs) { x1 = Bs[o]; y1 = Bs[o + 1]; z1 = Bs[o + 2]; }
+    else {
+      x1 = (i / (NU - 1) - .5) * 1700; z1 = (j / (NV - 1) - .5) * 1200;
+      y1 = 185 + (Math.sin(x1 * .0062 + t * 5.5) * 46 + Math.cos(z1 * .008 + x1 * .002 - t * 3.6) * 38) * (1 - F);
+    }
+    let x = lerp(A[o], x1, p), y = lerp(A[o + 1], y1, p), z = lerp(A[o + 2], z1, p);
+    if (k === 1 || k === 2) { const bl = 1 + .24 * Math.sin(p * PI); x *= bl; y *= bl; z *= bl; }
+    const xr = x * cy + z * sy, zr = -x * sy + z * cy;
+    const yr = y * cx - zr * sx, z2 = y * sx + zr * cx;
+    const s = f / (f + z2) * (k === 0 ? lerp(1, zoom, first) : zoom);
+    let X = 960 + xr * s, Y = 540 + yr * s;
+    if (F > 0) { X = lerp(X, 260 + i / (NU - 1) * 1400, F); Y = lerp(Y, 540, F); }
+    PX[n] = X; PY[n] = Y; PS[n] = s; PZ[n] = z2;
+  }
+  const la = first * .42, rb = lerp(5, 2.5, first) * (1 - F * .3);
+  const lines = front => {
+    ctx.beginPath();
+    for (let j = 0; j < NV; j++) for (let i = 0; i < NU; i++) {
+      if (k === 3 && i === NU - 1) continue;
+      const a = j * NU + i, c = j * NU + (i + 1) % NU;
+      if ((PZ[a] + PZ[c] <= 0) !== front) continue;
+      ctx.moveTo(PX[a], PY[a]); ctx.lineTo(PX[c], PY[c]);
+    }
+    ctx.strokeStyle = PAPER; ctx.lineWidth = 1.3; ctx.globalAlpha = la * (front ? 1 : .5); ctx.stroke();
+  };
+  const points = front => {
+    ctx.beginPath();
+    for (let n = 0; n < NPT; n++) {
+      if ((PZ[n] <= 0) !== front) continue;
+      const ps = Math.min(PS[n], 1.8), r = rb * ps * ps;
+      ctx.moveTo(PX[n] + r, PY[n]); ctx.arc(PX[n], PY[n], r, 0, TAU);
+    }
+    ctx.fillStyle = PAPER; ctx.globalAlpha = front ? 1 : .5; ctx.fill();
+  };
+  lines(false); points(false);
+  ctx.globalAlpha = 1;
+  // the title lives *inside* the object's depth
+  const size = fitSize('DEPTH', 1540), cap = CAP * size;
+  riseWord('DEPTH', 960, 540 + cap / 2, size, t, { align: 'c', tin: B(12.2), stag: .035, din: .5, tout: B(15), dout: .2, stagOut: .02, color: '#1a29d6' });
+  // nucleus = the dot
+  const nb = E.outBack(pr(t, B(12), .5), 2.2);
+  const nr = lerp(lerp(5, 44, nb) + 8 * Math.exp(-(b % 1) * 6) * first, 16, F);
+  ctx.fillStyle = ORANGE;
+  disc(lerp(lerp(1020, 960, first), 260, F), 540, nr);
+  lines(true); points(true);
+  ctx.globalAlpha = 1;
+  // caption
+  ctx.fillStyle = PAPER;
+  const cp = pr(t, Tk + .08, .22);
+  monoText(typeOn(`FIG. 03 — ${FIG3[k]} · ${NPT} VERTICES · RY ${String(Math.round(mod(ry * 180 / PI, 360))).padStart(3, '0')}°`, cp), 960, 1000, 15, { align: 'center', alpha: .75 * (1 - F) });
+}
+
+/* ═════════════════════ 04 · TIMING — the graph editor ═════════════════════ */
+const EAS = [
+  { f: E.inOutCubic, name: 'EASE IN-OUT', code: 'cubic-bezier(.65, 0, .35, 1)', h: [.65, 0, .35, 1], ha: 1 },
+  { f: x => E.outBack(x, 1.9), name: 'OVERSHOOT', code: 'cubic-bezier(.34, 1.56, .64, 1)', h: [.34, 1.56, .64, 1], ha: 1 },
+  { f: E.spring, name: 'SPRING', code: 'stiffness 170 · damping 12', h: [.12, 1.75, .3, 1], ha: 0 },
+];
+const RIB = [LIME, ORANGE, BLUE, PINK, LIME, ORANGE, BLUE, PINK];
+function s5(t) {
+  const b = t / BEAT;
+  bg(INK);
+  const k = Math.min(2, Math.floor(b - 16)), Tk = B(16 + k);
+  const m = k === 0 ? 1 : E.outBack(pr(t, Tk, .3), 1.6);
+  const prev = EAS[Math.max(0, k - 1)], cur = EAS[k];
+  const fv = x => lerp(prev.f(x), cur.f(x), m);
+  const intro = E.outExpo(pr(t, B(16), .45)), ui = pr(t, B(16) + .06, .3);
+  const gx0 = 200, gx1 = 1040, gy0 = 820, gy1 = 380, gw = gx1 - gx0, gh = gy0 - gy1;
+  // grid
+  ctx.strokeStyle = PAPER; ctx.lineWidth = 1.5;
+  for (let i = 0; i <= 4; i++) {
+    const d = E.outCubic(pr(t, B(16) + .04 + i * .035, .32));
+    ctx.globalAlpha = i === 0 ? .7 : .14;
+    ctx.beginPath(); ctx.moveTo(gx0 + gw * i / 4, gy0); ctx.lineTo(gx0 + gw * i / 4, gy0 - (gh + 130) * d); ctx.stroke();
+    ctx.globalAlpha = i === 0 ? .7 : (i === 4 ? .3 : .14);
+    ctx.beginPath(); ctx.moveTo(gx0, gy0 - gh * i / 4); ctx.lineTo(gx0 + gw * d, gy0 - gh * i / 4); ctx.stroke();
+  }
+  ctx.globalAlpha = 1; ctx.fillStyle = PAPER;
+  monoText('0', gx0 - 18, gy0 + 6, 14, { align: 'right', alpha: .5 * ui });
+  monoText('1', gx0 - 18, gy1 + 6, 14, { align: 'right', alpha: .5 * ui });
+  monoText('TIME →', gx1, gy0 + 40, 14, { align: 'right', alpha: .5 * ui });
+  monoText('VALUE', gx0, gy0 + 40, 14, { alpha: .5 * ui });
+  // handles
+  const hm = k === 0 ? intro : m;
+  const hh = cur.h.map((v, i) => lerp(prev.h[i], v, hm)), hal = lerp(k === 0 ? 0 : prev.ha, cur.ha, cl(hm)) * ui;
+  if (hal > .01) {
+    ctx.globalAlpha = .8 * hal; ctx.strokeStyle = PAPER; ctx.lineWidth = 1.5; ctx.fillStyle = PAPER;
+    const h1x = gx0 + hh[0] * gw, h1y = gy0 - hh[1] * gh, h2x = gx0 + hh[2] * gw, h2y = gy0 - hh[3] * gh;
+    ctx.beginPath(); ctx.moveTo(gx0, gy0); ctx.lineTo(h1x, h1y); ctx.moveTo(gx1, gy1); ctx.lineTo(h2x, h2y); ctx.stroke();
+    ctx.fillRect(h1x - 6, h1y - 6, 12, 12); ctx.fillRect(h2x - 6, h2y - 6, 12, 12);
+    ctx.globalAlpha = 1;
+  }
+  // curve — born from the flattened terrain line
+  const N = 110;
+  ctx.beginPath();
+  for (let i = 0; i <= N; i++) {
+    const u = i / N, x = lerp(260 + u * 1400, gx0 + u * gw, intro), y = lerp(540, gy0 - fv(u) * gh, intro);
+    i ? ctx.lineTo(x, y) : ctx.moveTo(x, y);
+  }
+  ctx.strokeStyle = LIME; ctx.lineWidth = 5; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke();
+  ctx.lineTo(gx1, gy0); ctx.lineTo(gx0, gy0); ctx.closePath();
+  ctx.fillStyle = LIME; ctx.globalAlpha = .07 * ui; ctx.fill(); ctx.globalAlpha = 1;
+  // playhead
+  const p = b >= 19 ? 1 : pr(t, Tk + .08, .34), v = fv(p);
+  const dx = lerp(260, gx0 + p * gw, intro), dy = lerp(540, gy0 - v * gh, intro);
+  ctx.strokeStyle = PAPER; ctx.lineWidth = 1.5; ctx.globalAlpha = .45 * ui;
+  ctx.beginPath(); ctx.moveTo(dx, gy0 + 14); ctx.lineTo(dx, gy1 - 130); ctx.stroke();
+  ctx.strokeStyle = LIME; ctx.globalAlpha = .65 * ui; ctx.setLineDash([3, 9]);
+  ctx.beginPath(); ctx.moveTo(dx + 24, dy); ctx.lineTo(1262, dy); ctx.stroke();
+  ctx.setLineDash([]); ctx.globalAlpha = 1;
+  // spacing chart
+  ctx.strokeStyle = PAPER; ctx.lineWidth = 2;
+  ctx.globalAlpha = .3 * ui; ctx.beginPath(); ctx.moveTo(1180, gy0); ctx.lineTo(1180, gy0 - gh * intro); ctx.stroke();
+  ctx.globalAlpha = .9 * ui; ctx.beginPath();
+  for (let j = 0; j <= 12; j++) {
+    const y = gy0 - fv(j / 12) * gh * intro, w = j % 12 === 0 ? 26 : 14;
+    ctx.moveTo(1180 - w, y); ctx.lineTo(1180 + w, y);
+  }
+  ctx.stroke(); ctx.globalAlpha = 1;
+  // position demo with onion skins
+  for (let g = 4; g >= 0; g--) {
+    const pp = p - g * .05;
+    if (pp < 0 || (g && p >= 1 && t > Tk + .08 + .34 + g * .03)) continue;
+    const y = gy0 - fv(pp) * gh * intro;
+    ctx.globalAlpha = (g ? .5 - g * .1 : 1) * ui;
+    if (g) { ctx.strokeStyle = PAPER; ctx.lineWidth = 2; ctx.strokeRect(1280, y - 48, 96, 96); }
+    else { ctx.fillStyle = PAPER; ctx.fillRect(1280, y - 48, 96, 96); }
+  }
+  ctx.globalAlpha = 1;
+  // rotate + scale demo
+  ctx.save();
+  ctx.translate(1610, 600); ctx.rotate((k + v) * PI / 2); const sc = (.5 + .5 * v) * E.outBack(pr(t, B(16) + .1, .4), 1.6);
+  ctx.scale(Math.max(.001, sc), Math.max(.001, sc));
+  ctx.fillStyle = LIME; rrect(-125, -125, 250, 250, 44); ctx.fill();
+  ctx.fillStyle = INK; disc(-58, -58, 30);
+  ctx.restore();
+  ctx.fillStyle = PAPER;
+  monoText('SPACING', 1180, gy0 + 92, 13, { align: 'center', alpha: .5 * ui });
+  monoText('POSITION', 1328, gy0 + 92, 13, { align: 'center', alpha: .5 * ui });
+  monoText('ROTATE × SCALE', 1610, gy0 + 92, 13, { align: 'center', alpha: .5 * ui });
+  // the dot rides the curve
+  ctx.strokeStyle = ORANGE; ctx.lineWidth = 2; ctx.globalAlpha = .6 * ui;
+  ctx.beginPath(); ctx.arc(dx, dy, 27, 0, TAU); ctx.stroke(); ctx.globalAlpha = 1;
+  ctx.fillStyle = ORANGE; disc(dx, dy, 16);
+  // title + ease name
+  const tw = riseWord('TIMING', 196, 236, 140, t, { tin: B(16) + .08, stag: .028, din: .45, color: PAPER });
+  ctx.save();
+  ctx.beginPath(); ctx.rect(tw.x0 + tw.w + 30, 150, 700, 92); ctx.clip();
+  const sl = (1 - E.outExpo(pr(t, Tk + (k ? 0 : .2), .28))) * 96;
+  ctx.fillStyle = LIME; monoText('→ ' + cur.name, tw.x0 + tw.w + 44, 192 + sl, 25, { w: 600 });
+  ctx.fillStyle = PAPER; monoText(cur.code, tw.x0 + tw.w + 44, 226 + sl, 16, { alpha: .55 });
+  ctx.restore();
+  // ribbon wipe to paper
+  if (b >= 19) {
+    ctx.save();
+    ctx.translate(960, 540); ctx.rotate(-.32);
+    for (let i = 0; i < 8; i++) {
+      const c0 = B(19) + i * .018, pc = E.inOutCubic(pr(t, c0, .25)), pp = E.inOutCubic(pr(t, c0 + .08, .25));
+      const y = -840 + i * 210, dir = i % 2 ? -1 : 1;
+      if (pc > 0) { ctx.fillStyle = RIB[i]; dir > 0 ? ctx.fillRect(-1120, y, 2240 * pc, 211) : ctx.fillRect(1120 - 2240 * pc, y, 2240 * pc, 211); }
+      if (pp > 0) { ctx.fillStyle = PAPER; dir > 0 ? ctx.fillRect(-1120, y - .5, 2240 * pp, 212) : ctx.fillRect(1120 - 2240 * pp, y - .5, 2240 * pp, 212); }
+    }
+    ctx.restore();
+  }
+}
+
+/* ═════════════════════ 05 · DETAIL — 6,000 particles ═════════════════════ */
+const NP = 6000, SW0 = B(21.5), SWD = B(.9);
+let P6 = null;
+const X6 = new Float32Array(NP), Y6 = new Float32Array(NP), R6 = new Float32Array(NP);
+function sampleWord(str, r) {
+  const s = .5, c = document.createElement('canvas');
+  c.width = W * s; c.height = H * s;
+  const x = c.getContext('2d', { willReadFrequently: true });
+  const size = fitSize(str, 1480), cap = CAP * size;
+  x.scale(s, s); x.font = fSans(size); x.textAlign = 'center'; x.textBaseline = 'alphabetic'; x.fillStyle = '#000';
+  x.fillText(str, 960, 540 + cap / 2);
+  const d = x.getImageData(0, 0, c.width, c.height).data, cand = [];
+  for (let yy = 0; yy < c.height; yy++) for (let xx = 0; xx < c.width; xx++) if (d[(yy * c.width + xx) * 4 + 3] > 128) cand.push(xx, yy);
+  const cnt = cand.length / 2, pts = [];
+  for (let i = 0; i < NP; i++) {
+    const q = cnt ? ((r() * cnt) | 0) * 2 : 0;
+    pts.push(cnt ? [(cand[q] + r()) / s, (cand[q + 1] + r()) / s] : [960, 540]);
+  }
+  pts.sort((a, b2) => a[0] - b2[0]);
+  return pts;
+}
+function init6() {
+  const r = rng(77), A = sampleWord('DETAIL', r), Bw = sampleWord('MATTERS', r);
+  const P = { sx: new Float32Array(NP), sy: new Float32Array(NP), ax: new Float32Array(NP), ay: new Float32Array(NP), bx: new Float32Array(NP), by: new Float32Array(NP), rad: new Float32Array(NP), col: new Uint8Array(NP), r1: new Float32Array(NP), r2: new Float32Array(NP), r3: new Float32Array(NP) };
+  for (let i = 0; i < NP; i++) {
+    P.ax[i] = A[i][0]; P.ay[i] = A[i][1]; P.bx[i] = Bw[i][0]; P.by[i] = Bw[i][1];
+    P.sx[i] = r() * W * 1.3 - W * .15; P.sy[i] = r() * H * 1.3 - H * .15;
+    P.rad[i] = 1.7 + r() * r() * 3.2;
+    const q = r(); P.col[i] = q < .07 ? 1 : q < .12 ? 2 : 0;
+    P.r1[i] = r(); P.r2[i] = r(); P.r3[i] = r();
+  }
+  P6 = P;
+}
+function dot6(t) {
+  const pin = E.outExpo(pr(t, B(20) + .1, .5));
+  let x = lerp(-90, 130, pin), y = 540;
+  const p = pr(t, SW0, SWD);
+  if (p > 0) { x = lerp(130, 1790, E.inOutCubic(p)); y = 540 - Math.sin(p * PI) * 36; }
+  return { x, y };
+}
+function s6(t) {
+  bg(PAPER);
+  const P = P6, dot = dot6(t), RR = 125;
+  const q = E.outExpo(pr(t, B(23.5), .36));
+  for (let i = 0; i < NP; i++) {
+    const ax = P.ax[i], ay = P.ay[i];
+    const da = (ax / W) * .2 + P.r1[i] * .07, pa = E.inOutCubic(pr(t, B(20) + da, .34));
+    let x = lerp(P.sx[i], ax, pa), y = lerp(P.sy[i], ay, pa);
+    if (pa < 1) { const sw = Math.sin(pa * PI) * .7 * (P.r2[i] - .5); x += -(ay - P.sy[i]) * sw; y += (ax - P.sx[i]) * sw; }
+    const ts = SW0 + SWD * invInOutCubic(cl((ax - 130) / 1660));
+    const pm = E.inOutCubic(pr(t, ts - .03 + P.r1[i] * .05, .27));
+    if (pm > 0) { x = lerp(x, P.bx[i], pm); y = lerp(y, P.by[i], pm) - Math.sin(pm * PI) * (30 + P.r2[i] * 95); }
+    x += Math.sin(t * 5 + P.r3[i] * 40) * 1.5; y += Math.cos(t * 4.3 + P.r3[i] * 31) * 1.5;
+    let dx = x - dot.x, dy = y - dot.y, d2 = dx * dx + dy * dy;
+    if (d2 < RR * RR) { const d = Math.sqrt(d2) + .001, f = 1 - d / RR; x += dx / d * f * f * 95; y += dy / d * f * f * 95; }
+    if (q > 0) {
+      dx = x - dot.x; dy = y - dot.y;
+      const d = Math.hypot(dx, dy), a = Math.atan2(dy, dx) + (P.r2[i] - .5) * .9, mm = q * (500 + P.r1[i] * 1800) * (1.25 - .5 * d / 1700);
+      x += Math.cos(a) * mm; y += Math.sin(a) * mm;
+    }
+    X6[i] = x; Y6[i] = y; R6[i] = P.rad[i] * cl((t - B(20) - da * .6) / .16) * (1 + .5 * Math.sin(pm * PI));
+  }
+  const cols = [INK, ORANGE, BLUE];
+  for (let c = 0; c < 3; c++) {
+    ctx.beginPath();
+    for (let i = 0; i < NP; i++) {
+      if (P.col[i] !== c || R6[i] <= 0) continue;
+      const x = X6[i], y = Y6[i];
+      if (x < -10 || x > W + 10 || y < -10 || y > H + 10) continue;
+      ctx.moveTo(x + R6[i], y); ctx.arc(x, y, R6[i], 0, TAU);
+    }
+    ctx.fillStyle = cols[c]; ctx.fill();
+  }
+  // caption
+  ctx.fillStyle = INK;
+  monoText(typeOn('FIG. 05 — 6,000 PARTICLES · EACH ONE EASED ON ITS OWN', pr(t, B(20.5), .4)), 960, 936, 15, { align: 'center', alpha: .6 * (1 - pr(t, B(23.5), .1)) });
+  // the dot + blast ring
+  const bp = pr(t, B(23.5), .4);
+  if (bp > 0 && bp < 1) {
+    ctx.strokeStyle = ORANGE; ctx.lineWidth = 10 * (1 - bp); ctx.globalAlpha = 1 - bp;
+    ctx.beginPath(); ctx.arc(dot.x, dot.y, 26 + 900 * E.outExpo(bp), 0, TAU); ctx.stroke(); ctx.globalAlpha = 1;
+  }
+  const anti = E.outCubic(pr(t, B(23.25), B(.25))) * (1 - pr(t, B(23.5), .02));
+  ctx.fillStyle = ORANGE;
+  disc(dot.x, dot.y, 26 * (1 - .4 * anti) + (t >= B(23.5) ? 22 * Math.exp(-(t - B(23.5)) * 14) : 0));
+}
+
+/* ═════════════════════ 06 · NUMBERS — four cards, four beats ═════════════════════ */
+const CARDS = [
+  { bg: BLUE, fg: PAPER, acc: LIME, from: 0, to: 900, label: 'FRAMES', sub: '15 SECONDS × 60 FPS', dir: [1, 0] },
+  { bg: LIME, fg: INK, acc: BLUE, from: 60, to: 128, label: 'BPM', sub: 'EVERY CUT LANDS ON THE BEAT', dir: [0, 1] },
+  { bg: PINK, fg: INK, acc: BLUE, from: 48, to: 0, label: 'KEYFRAMES', sub: '100% PROCEDURAL — ALL MATH', dir: [-1, 0] },
+  { bg: ORANGE, fg: INK, acc: PAPER, from: 9, to: 1, label: 'FILE', sub: 'INDEX.HTML — NO ASSETS', dir: [0, -1] },
+];
+function card(k, t, fade = 1) {
+  const c = CARDS[k], T = B(24 + k), p = pr(t, T, .4), ph = mod((t - T) / BEAT, 1);
+  ctx.fillStyle = c.bg; ctx.fillRect(0, 0, W, H);
+  if (fade <= 0) return;
+  ctx.save();
+  ctx.globalAlpha = fade;
+  // big numeral
+  const val = Math.round(lerp(c.from, c.to, E.outExpo(pr(t, T + .03, .3))));
+  const size = 760, cap = CAP * size, lag = (1 - E.outExpo(pr(t, T + .02, .5))) * 320;
+  ctx.font = fSans(size); ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = c.fg;
+  ctx.fillText(String(val), 62 + c.dir[0] * lag, 968 + c.dir[1] * lag);
+  // label + sub
+  riseWord(c.label, 98, 268, 132, t, { tin: T + .07, stag: .016, din: .36, color: c.fg });
+  ctx.fillStyle = c.fg; ctx.globalAlpha = fade;
+  ctx.fillRect(100, 300, 620 * E.outExpo(pr(t, T + .1, .4)), 6);
+  monoText(typeOn(c.sub, pr(t, T + .14, .2)), 102, 346, 20, { w: 600 });
+  // icon
+  const ib = E.outBack(pr(t, T + .08, .34), 2);
+  if (k === 0) {
+    const n = Math.floor(E.outExpo(pr(t, T + .05, .34)) * 24 + .001);
+    ctx.strokeStyle = c.fg; ctx.lineWidth = 3;
+    for (let i = 0; i < 24; i++) {
+      const x = 1522 + (i % 6) * 52, y = 150 + ((i / 6) | 0) * 52;
+      if (i < n) { ctx.fillStyle = i === n - 1 ? c.acc : c.fg; ctx.fillRect(x, y, 40, 40); }
+      else ctx.strokeRect(x + 1.5, y + 1.5, 37, 37);
+    }
+  } else if (k === 1) {
+    ctx.strokeStyle = c.fg;
+    for (let j = 0; j < 3; j++) {
+      const q = mod(ph * 2 + j / 3, 1);
+      ctx.lineWidth = 8 * (1 - q); ctx.globalAlpha = fade * (1 - q);
+      ctx.beginPath(); ctx.arc(1690, 262, 30 + 140 * q, 0, TAU); ctx.stroke();
+    }
+    ctx.globalAlpha = fade; ctx.fillStyle = c.acc; disc(1690, 262, 30 * ib + 10 * Math.exp(-mod(ph * 2, 1) * 6));
+  } else if (k === 2) {
+    ctx.save(); ctx.translate(1700, 262); ctx.rotate(PI / 4 + (1 - ib) * PI); ctx.scale(ib, ib);
+    ctx.fillStyle = c.fg; ctx.fillRect(-72, -72, 144, 144); ctx.restore();
+    const sp = E.outExpo(pr(t, T + .2, .22));
+    ctx.strokeStyle = c.acc; ctx.lineWidth = 16; ctx.lineCap = 'round';
+    ctx.beginPath(); ctx.moveTo(1580, 382); ctx.lineTo(1580 + 240 * sp, 382 - 240 * sp); ctx.stroke();
+  } else {
+    ctx.save(); ctx.translate(1716, 262); ctx.scale(Math.max(.001, ib), Math.max(.001, ib));
+    ctx.fillStyle = c.fg;
+    ctx.beginPath(); ctx.moveTo(-76, -100); ctx.lineTo(30, -100); ctx.lineTo(76, -54); ctx.lineTo(76, 100); ctx.lineTo(-76, 100); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = c.bg;
+    ctx.beginPath(); ctx.moveTo(30, -100); ctx.lineTo(76, -54); ctx.lineTo(30, -54); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = c.acc;
+    const lp = E.outExpo(pr(t, T + .2, .25));
+    ctx.fillRect(-48, -22, 96 * lp, 9); ctx.fillRect(-48, 6, 70 * lp, 9); ctx.fillRect(-48, 34, 96 * lp, 9); ctx.fillRect(-48, 62, 44 * lp, 9);
+    ctx.restore();
+  }
+  ctx.restore();
+}
+function s7(t) {
+  const k = Math.min(3, Math.floor(t / BEAT - 24)), c = CARDS[k], p = E.outExpo(pr(t, B(24 + k), .34));
+  bg(INK);
+  if (p < 1) {
+    ctx.save(); ctx.translate(-c.dir[0] * p * W, -c.dir[1] * p * H);
+    k ? card(k - 1, t) : s6(t);
+    ctx.restore();
+  }
+  ctx.save(); ctx.translate(c.dir[0] * (1 - p) * W, c.dir[1] * (1 - p) * H);
+  card(k, t);
+  ctx.restore();
+}
+
+/* ═════════════════════ 07 · HELLO — end card ═════════════════════ */
+function s8(t) {
+  const b = t / BEAT;
+  bg(INK);
+  const size = fitSize('CLAUDE', 1290), L = word('CLAUDE', size), cap = CAP * size, base = 606;
+  const R = 37, full = L.w + 32 + 2 * R, x0 = (W - full) / 2, Px = x0 + L.w + 32 + R, Py = base - R;
+  // iris: the last card collapses into the dot
+  const ip = E.outExpo(pr(t, B(28), .5));
+  if (ip < 1) {
+    ctx.save(); ctx.beginPath(); ctx.arc(Px, Py, lerp(1900, R, ip), 0, TAU); ctx.clip();
+    card(3, t, 1 - pr(t, B(28), .1));
+    ctx.restore();
+  }
+  const gone = 1 - pr(t, B(31.08), .1);
+  // wordmark
+  riseWord('CLAUDE', x0, base, size, t, { tin: B(28.3), stag: .04, din: .55, tout: B(31.2), dout: .16, stagOut: .018, color: PAPER });
+  ctx.fillStyle = PAPER;
+  monoText(typeOn('MOTION DESIGN REEL — MMXXVI', pr(t, B(28.6), .35)), x0 + 8, base - cap - 46, 19, { alpha: .65 * gone });
+  // rule
+  const ra = E.outExpo(pr(t, B(29), .5)), rz = E.inCubic(pr(t, B(31.12), .15));
+  ctx.fillStyle = PAPER; ctx.globalAlpha = .9;
+  ctx.fillRect(x0 + full * rz, base + 62, full * (ra - rz), 2.5);
+  ctx.globalAlpha = 1;
+  // serif line
+  ctx.save();
+  ctx.beginPath(); ctx.rect(x0 - 20, base + 86, 1100, 98); ctx.clip();
+  ctx.font = `italic 400 66px ${SERIF}`; ctx.textAlign = 'left'; ctx.textBaseline = 'alphabetic'; ctx.fillStyle = PAPER;
+  ctx.fillText('Motion designer, open to work.', x0 + 2, base + 156 + (1 - E.outExpo(pr(t, B(29.25), .5))) * 100 + E.inCubic(pr(t, B(31.1), .14)) * 100);
+  ctx.restore();
+  ctx.fillStyle = PAPER;
+  monoText(typeOn('15 SEC · 128 BPM · 1 FILE', pr(t, B(29.6), .25)), x0 + full, base + 124, 16, { align: 'right', alpha: .7 * gone });
+  monoText(typeOn('MADE ENTIRELY IN CODE', pr(t, B(29.85), .25)), x0 + full, base + 154, 16, { align: 'right', alpha: .7 * gone });
+  // the dot: full stop, pulse, anticipate, launch
+  if (ip >= 1) {
+    const ph = b % 1, live = b < 31.4;
+    if (live) {
+      ctx.strokeStyle = ORANGE; ctx.lineWidth = 3 * (1 - ph); ctx.globalAlpha = (1 - ph) * .9;
+      ctx.beginPath(); ctx.arc(Px, Py, R + 8 + 80 * E.outCubic(ph), 0, TAU); ctx.stroke(); ctx.globalAlpha = 1;
+    }
+    const an = E.outCubic(pr(t, B(31.45), .12)) * (1 - pr(t, B(31.74), .025));
+    const la = E.inCubic(pr(t, B(31.74), B(.26)));
+    const sy = 1 - .4 * an + .7 * Math.min(1, la * 5), sx = 1 / sy;
+    const r = R + (live ? 6 * Math.exp(-ph * 7) : 0);
+    ctx.fillStyle = ORANGE;
+    ctx.beginPath(); ctx.ellipse(Px, Py + R * (1 - sy) - la * 1050, r * sx, r * sy, 0, 0, TAU); ctx.fill();
+  }
+}
+
+/* ───────────────────────── HUD + grain ───────────────────────── */
+const CH = [['00', 'INTRO'], ['01', 'TYPE'], ['02', 'SYSTEM'], ['03', 'DEPTH'], ['04', 'TIMING'], ['05', 'DETAIL'], ['06', 'NUMBERS'], ['07', 'HELLO']];
+function hud(t) {
+  const b = t / BEAT, bar = Math.min(7, Math.floor(b / 4));
+  let col = PAPER, diff = false;
+  if (bar === 1 && b < 6) col = INK;
+  else if (bar === 2 && b < 11.45) diff = true;
+  else if (bar === 4 && b >= 19.62) col = INK;
+  else if (bar === 5) col = INK;
+  else if (bar === 6) { const k = Math.floor(b - 24); col = (t - B(24 + k) < .12) ? (k ? CARDS[k - 1].fg : INK) : CARDS[k].fg; }
+  else if (bar === 7 && t - B(28) < .15) col = INK;
+  ctx.save();
+  if (diff) { ctx.globalCompositeOperation = 'difference'; col = '#ffffff'; }
+  ctx.fillStyle = col;
+  disc(62, 56, 5.5);
+  monoText('CLAUDE — MOTION REEL ’26', 80, 62, 15, { w: 600 });
+  const fr = Math.floor(t * 60 + 1e-6);
+  monoText(`TC 00:${pad2(Math.floor(fr / 60))}:${pad2(fr % 60)}`, W - 54, 62, 15, { align: 'right', w: 600 });
+  ctx.save();
+  ctx.beginPath(); ctx.rect(50, 1014, 500, 28); ctx.clip();
+  monoText(`${CH[bar][0]} / ${CH[bar][1]}`, 56, 1035 + (1 - E.outExpo(pr(t - bar * BAR, 0, .3))) * 28, 15, { w: 600 });
+  ctx.restore();
+  for (let i = 0; i < 8; i++) {
+    const x = W - 56 - (8 - i) * 30 + 6, y = 1026;
+    ctx.globalAlpha = i < bar ? 1 : .28; ctx.fillRect(x, y, 24, 4);
+    if (i === bar) { ctx.globalAlpha = 1; ctx.fillRect(x, y, 24 * cl((t - bar * BAR) / BAR), 4); }
+  }
+  ctx.restore();
+}
+let grainPat = null;
+function grain(t) {
+  if (!grainPat) {
+    const g = document.createElement('canvas'); g.width = g.height = 256;
+    const x = g.getContext('2d'), im = x.createImageData(256, 256), r = rng(9);
+    for (let i = 0; i < im.data.length; i += 4) { const v = r() < .5 ? 0 : 255; im.data[i] = im.data[i + 1] = im.data[i + 2] = v; im.data[i + 3] = 6 + r() * 16; }
+    x.putImageData(im, 0, 0);
+    grainPat = ctx.createPattern(g, 'repeat');
+  }
+  const r = rng(Math.floor(t * 30) + 1), ox = Math.floor(r() * 256), oy = Math.floor(r() * 256), gs = SC > 1.25 ? 2 : 1;
+  ctx.save(); ctx.setTransform(gs, 0, 0, gs, -ox * gs, -oy * gs);
+  ctx.fillStyle = grainPat; ctx.fillRect(ox, oy, cv.width / gs + 1, cv.height / gs + 1);
+  ctx.restore();
+}
+
+/* ───────────────────────── frame ───────────────────────── */
+function render(t) {
+  t = cl(t, 0, DUR - 1e-4);
+  ctx.setTransform(SC, 0, 0, SC, 0, 0);
+  ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+  const b = t / BEAT;
+  ctx.save();
+  if ((b >= 4 && b < 20) || (b >= 24 && b < 29)) {
+    const z = 1 + .007 * Math.exp(-(b % 1) * 6);
+    ctx.translate(W / 2, H / 2); ctx.scale(z, z); ctx.translate(-W / 2, -H / 2);
+  }
+  if (b < 4) s1(t); else if (b < 8) s2(t); else if (b < 12) s3(t); else if (b < 16) s4(t);
+  else if (b < 20) s5(t); else if (b < 24) s6(t); else if (b < 28) s7(t); else s8(t);
+  ctx.restore();
+  hud(t); grain(t);
+}
+
+/* ───────────────────────── soundtrack (synthesised, 128 BPM) ───────────────────────── */
+async function buildAudio() {
+  const sr = 44100, OAC = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+  const oc = new OAC(2, Math.round(sr * DUR), sr);
+  const out = oc.createGain(); out.gain.value = .8;
+  const comp = oc.createDynamicsCompressor();
+  comp.threshold.value = -13; comp.knee.value = 8; comp.ratio.value = 4; comp.attack.value = .003; comp.release.value = .16;
+  out.connect(comp); comp.connect(oc.destination);
+  const music = oc.createGain(), drums = oc.createGain(), fx = oc.createGain();
+  music.connect(out); drums.connect(out); fx.connect(out);
+  const conv = oc.createConvolver(), wet = oc.createGain(), send = oc.createGain();
+  const ir = oc.createBuffer(2, Math.round(sr * 2.4), sr);
+  for (let c = 0; c < 2; c++) { const d = ir.getChannelData(c); for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / d.length, 2.8); }
+  conv.buffer = ir; wet.gain.value = .3; send.connect(conv); conv.connect(wet); wet.connect(out);
+  const nb = oc.createBuffer(1, sr * 2, sr);
+  { const d = nb.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; }
+  const mtof = m => 440 * Math.pow(2, (m - 69) / 12);
+  const env = (g, t, a, peak, d) => { g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(peak, t + a); g.gain.exponentialRampToValueAtTime(.0001, t + a + d); };
+  const to = (node, ...dests) => dests.forEach(d => node.connect(d));
+
+  function noise(t, d, type, f, q, peak, dests, att = .002) {
+    const s = oc.createBufferSource(); s.buffer = nb; s.loop = true;
+    const fl = oc.createBiquadFilter(); fl.type = type; fl.frequency.value = f; fl.Q.value = q;
+    const g = oc.createGain(); env(g, t, att, peak, d);
+    s.connect(fl); fl.connect(g); to(g, ...dests);
+    s.start(t, Math.random() * 1.5); s.stop(t + att + d + .03);
+    return fl;
+  }
+  function kick(t, g = 1) {
+    const o = oc.createOscillator(), a = oc.createGain();
+    o.frequency.setValueAtTime(170, t); o.frequency.exponentialRampToValueAtTime(47, t + .11);
+    a.gain.setValueAtTime(g, t); a.gain.exponentialRampToValueAtTime(.001, t + .34);
+    o.connect(a); a.connect(drums); o.start(t); o.stop(t + .36);
+    noise(t, .015, 'highpass', 2500, .7, .25 * g, [drums]);
+    music.gain.setValueAtTime(.32, t); music.gain.linearRampToValueAtTime(1, t + .24);
+  }
+  const hat = (t, g, d) => noise(t, d, 'highpass', 8200, .8, g, [drums]);
+  function clap(t, g) {
+    for (const o of [0, .011, .023]) noise(t + o, .012, 'bandpass', 1700, 1.1, g * .8, [drums]);
+    noise(t + .03, .19, 'bandpass', 1500, .9, g, [drums, send]);
+  }
+  function bass(t, m, d, g) {
+    const f = mtof(m), o1 = oc.createOscillator(), o2 = oc.createOscillator(), fl = oc.createBiquadFilter(), a = oc.createGain();
+    o1.type = 'sawtooth'; o1.frequency.value = f; o2.type = 'sine'; o2.frequency.value = f;
+    fl.type = 'lowpass'; fl.Q.value = 5; fl.frequency.setValueAtTime(1100, t); fl.frequency.exponentialRampToValueAtTime(160, t + d);
+    env(a, t, .006, g, d);
+    const sg = oc.createGain(); sg.gain.value = 1.3;
+    o1.connect(fl); o2.connect(sg); sg.connect(fl); fl.connect(a); a.connect(music);
+    o1.start(t); o2.start(t); o1.stop(t + d + .05); o2.stop(t + d + .05);
+  }
+  function pluck(t, m, d, g, pan = 0, cut = 3000, rev = .35) {
+    const f = mtof(m), fl = oc.createBiquadFilter(), a = oc.createGain(), pn = oc.createStereoPanner(), sg = oc.createGain();
+    fl.type = 'lowpass'; fl.Q.value = 2; fl.frequency.setValueAtTime(cut, t); fl.frequency.exponentialRampToValueAtTime(Math.max(200, cut * .12), t + d);
+    env(a, t, .004, g, d); pn.pan.value = pan; sg.gain.value = rev;
+    for (const det of [-8, 8]) { const o = oc.createOscillator(); o.type = 'sawtooth'; o.frequency.value = f; o.detune.value = det; o.connect(fl); o.start(t); o.stop(t + d + .05); }
+    fl.connect(a); a.connect(pn); pn.connect(music); pn.connect(sg); sg.connect(send);
+  }
+  function pad(t, notes, d, g, c0, c1) {
+    const fl = oc.createBiquadFilter(), a = oc.createGain();
+    fl.type = 'lowpass'; fl.Q.value = 1; fl.frequency.setValueAtTime(c0, t); fl.frequency.exponentialRampToValueAtTime(c1, t + d);
+    a.gain.setValueAtTime(.0001, t); a.gain.linearRampToValueAtTime(g, t + Math.min(.35, d * .3)); a.gain.setValueAtTime(g, t + d - .12); a.gain.linearRampToValueAtTime(.0001, t + d);
+    for (const m of notes) for (const det of [-10, 9]) { const o = oc.createOscillator(); o.type = 'sawtooth'; o.frequency.value = mtof(m); o.detune.value = det; o.connect(fl); o.start(t); o.stop(t + d + .02); }
+    fl.connect(a); to(a, music, send);
+  }
+  function riser(t0, t1, peak) {
+    t0 = Math.max(0, t0);
+    const s = oc.createBufferSource(); s.buffer = nb; s.loop = true;
+    const fl = oc.createBiquadFilter(); fl.type = 'bandpass'; fl.Q.value = 1.3;
+    fl.frequency.setValueAtTime(350, t0); fl.frequency.exponentialRampToValueAtTime(7500, t1);
+    const g = oc.createGain(); g.gain.setValueAtTime(.0001, t0); g.gain.exponentialRampToValueAtTime(peak, t1); g.gain.linearRampToValueAtTime(.0001, t1 + .035);
+    s.connect(fl); fl.connect(g); to(g, fx, send); s.start(t0); s.stop(t1 + .06);
+  }
+  function impact(t, g) {
+    const o = oc.createOscillator(), a = oc.createGain();
+    o.frequency.setValueAtTime(95, t); o.frequency.exponentialRampToValueAtTime(30, t + .8);
+    a.gain.setValueAtTime(g, t); a.gain.exponentialRampToValueAtTime(.001, t + 1.1);
+    o.connect(a); a.connect(fx); o.start(t); o.stop(t + 1.15);
+    noise(t, .5, 'lowpass', 1400, .5, g * .35, [fx, send]);
+  }
+  function bounce(t, g, f) {
+    const o = oc.createOscillator(), a = oc.createGain();
+    o.frequency.setValueAtTime(f * 2.4, t); o.frequency.exponentialRampToValueAtTime(f, t + .07);
+    a.gain.setValueAtTime(g, t); a.gain.exponentialRampToValueAtTime(.001, t + .26);
+    o.connect(a); to(a, fx, send); o.start(t); o.stop(t + .3);
+    noise(t, .03, 'bandpass', 900, .8, g * .3, [fx, send]);
+  }
+  function glide(t, d, f0, f1, g, type = 'sine') {
+    const o = oc.createOscillator(), a = oc.createGain();
+    o.type = type; o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + d);
+    env(a, t, .01, g, d); o.connect(a); to(a, fx, send); o.start(t); o.stop(t + d + .05);
+  }
+
+  const chords = [null, [57, 60, 64], [53, 57, 60], [55, 60, 64], [55, 59, 62], [57, 60, 64], [56, 59, 64], [57, 60, 64]];
+  const roots = [null, 33, 29, 36, 31, 33, 28, 33];
+
+  // bar 1 — ball, air, riser
+  bounce(T1, .85, 62); bounce(T2, .55, 76); bounce(T3, .75, 92);
+  riser(B(1.6), B(4), .28);
+  glide(B(3.3), B(.7), 120, 900, .12, 'triangle');
+  // drums
+  const kicks = [];
+  for (let b = 4; b < 20; b++) kicks.push(b);
+  kicks.push(24, 25, 26, 27, 27.5, 28);
+  for (const b of kicks) kick(B(b), b === 27.5 ? .7 : .95);
+  for (let b = 5; b < 20; b += 2) clap(B(b), b < 8 ? .22 : .32);
+  for (let b = 24; b < 28; b++) clap(B(b), .34);
+  for (let i = 0; i < 4; i++) noise(B(27.5 + i / 8), .04, 'bandpass', 2200, 1, .12 + i * .05, [drums]);
+  for (let b = 8; b < 20; b++) { hat(B(b + .5), .17, .09); for (let s = 0; s < 4; s++) hat(B(b + s / 4), s % 2 ? .06 : .035, .028); }
+  for (let b = 24; b < 28; b++) { hat(B(b + .5), .2, .09); for (let s = 0; s < 4; s++) hat(B(b + s / 4), .06, .028); }
+  for (let b = 20; b < 24; b++) for (let s = 0; s < 4; s++) hat(B(b + s / 4), .012 + .012 * (b - 20) + (s === 2 ? .03 : 0), .03);
+  // bass
+  for (const b of kicks) {
+    if (b % 1 || b >= 28) continue;
+    const r0 = roots[Math.floor(b / 4)];
+    bass(B(b + .5), r0, .2, .34);
+    if (b % 2 === 1) bass(B(b + .75), r0 + 12, .1, .2);
+  }
+  // stabs + arp
+  for (let bar = 1; bar <= 4; bar++) for (const o of [0, 1.5, 2.75]) chords[bar].forEach((m, i) => pluck(B(bar * 4 + o), m + 12, .3, .07, (i - 1) * .4, 3400));
+  for (let b = 24; b < 28; b++) [56, 59, 64, 68].forEach((m, i) => pluck(B(b), m + 12, .28, .085, (i - 1.5) * .35, 4200 + (b - 24) * 500));
+  const pat = [0, 1, 2, 1, 2, 0, 1, 2], oct = [12, 12, 12, 24, 12, 24, 24, 12];
+  for (let s = 0; s < 80; s++) {
+    const beat = 4 + s / 4, bar = Math.floor(beat / 4), brk = bar === 5;
+    pluck(B(beat), chords[bar][pat[s % 8]] + oct[s % 8] + (brk ? 12 : 0), brk ? .3 : .15, brk ? .06 : .03 + .008 * bar, s % 2 ? .45 : -.45, 1400 + 550 * bar, brk ? .9 : .35);
+  }
+  // bar 6 — the break
+  pad(B(20), [45, 57, 60, 64, 67], B(4), .035, 500, 3200);
+  riser(B(22), B(24), .3);
+  // transitions
+  for (const b of [8, 12, 16]) riser(B(b) - .36, B(b), .16);
+  riser(B(19), B(20), .2); riser(B(27), B(28), .3);
+  impact(B(4), .7); impact(B(6), .55); impact(B(12), .45); impact(B(20), .4); impact(B(24), .7); impact(B(28), .95);
+  [16, 17, 18].forEach((b, i) => glide(B(b) + .08, .32, 280 + i * 60, 760 + i * 180, .07));
+  glide(B(23.25), B(.25), 200, 1200, .08, 'triangle');
+  // bar 8 — resolve
+  pad(B(28), [45, 57, 60, 64, 71], B(3.6), .04, 2600, 500);
+  [45, 57, 64, 71].forEach((m, i) => pluck(B(28), m, 2.4, .1, (i - 1.5) * .3, 2800, .8));
+  [[28.5, 76], [29, 79], [29.5, 83], [30, 88]].forEach(([b, m], i) => pluck(B(b), m, .7, .09, i % 2 ? .4 : -.4, 4200, 1));
+  glide(B(31.74), B(.26), 260, 3200, .1);
+
+  const rendered = await oc.startRendering();
+  // safety normalise so nothing clips on output
+  let peak = 0;
+  for (let c = 0; c < rendered.numberOfChannels; c++) { const d = rendered.getChannelData(c); for (let i = 0; i < d.length; i++) { const v = Math.abs(d[i]); if (v > peak) peak = v; } }
+  if (peak > .9) { const g = .9 / peak; for (let c = 0; c < rendered.numberOfChannels; c++) { const d = rendered.getChannelData(c); for (let i = 0; i < d.length; i++) d[i] *= g; } }
+  return rendered;
+}
+
+/* ───────────────────────── transport ───────────────────────── */
+const qs = new URLSearchParams(location.search);
+const frozen = qs.has('t') ? parseFloat(qs.get('t')) : null;
+const hint = document.getElementById('hint'), hintTxt = hint.querySelector('span');
+let ac = null, buf = null, src = null, soundOn = false, building = false;
+let playing = true, off = 0, t0 = performance.now(), acT0 = 0;
+
+function curT() {
+  if (frozen != null) return frozen;
+  if (!playing) return off;
+  if (soundOn && src) return mod(off + (ac.currentTime - acT0) - (ac.outputLatency || 0), DUR);
+  return mod(off + (performance.now() - t0) / 1000, DUR);
+}
+function stopSrc() { if (src) { try { src.stop(); } catch (e) {} src.disconnect(); src = null; } }
+function startSrc(at) {
+  stopSrc();
+  src = ac.createBufferSource(); src.buffer = buf; src.loop = true; src.connect(ac.destination);
+  off = mod(at, DUR); acT0 = ac.currentTime + .04; src.start(acT0, off);
+}
+function setHint(txt, hide) {
+  hintTxt.textContent = txt; hint.classList.remove('off');
+  clearTimeout(setHint.tm);
+  if (hide) setHint.tm = setTimeout(() => hint.classList.add('off'), 1400);
+}
+async function toggleSound() {
+  if (frozen != null || building) return;
+  if (soundOn) {
+    const t = curT(); soundOn = false; stopSrc(); off = t; t0 = performance.now();
+    setHint('SOUND OFF', true); return;
+  }
+  try {
+    if (!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
+    if (ac.state === 'suspended') await ac.resume();
+    if (!buf) { building = true; setHint('RENDERING AUDIO…'); buf = await buildAudio(); building = false; }
+    const t = curT(); soundOn = true;
+    if (playing) startSrc(t); else off = t;
+    setHint('SOUND ON · M TO MUTE', true);
+  } catch (e) { building = false; setHint('AUDIO UNAVAILABLE', true); }
+}
+function togglePlay() {
+  if (frozen != null) return;
+  if (playing) { off = curT(); playing = false; stopSrc(); render(off); }
+  else { playing = true; t0 = performance.now(); if (soundOn) startSrc(off); }
+}
+function seek(to) {
+  if (frozen != null) return;
+  to = mod(to, DUR);
+  if (playing && soundOn) startSrc(to); else { off = to; t0 = performance.now(); if (!playing) render(off); }
+}
+document.getElementById('stage').addEventListener('click', toggleSound);
+hint.addEventListener('click', toggleSound);
+addEventListener('keydown', e => {
+  if (e.code === 'Space') { e.preventDefault(); togglePlay(); }
+  else if (e.key === 'm' || e.key === 'M') toggleSound();
+  else if (e.key === 'ArrowRight') seek(curT() + BEAT);
+  else if (e.key === 'ArrowLeft') seek(curT() - BEAT);
+  else if (e.key === 'r' || e.key === 'R') seek(0);
+  else if (e.key === 'f' || e.key === 'F') { document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen && document.documentElement.requestFullscreen(); }
+});
+
+/* ───────────────────────── go ───────────────────────── */
+resize();
+init6();
+if (frozen != null) { hint.style.display = 'none'; render(frozen); }
+else {
+  const loop = () => { if (playing) render(curT()); requestAnimationFrame(loop); };
+  requestAnimationFrame(loop);
+}
+})();
+</script>
+</body>
+</html>

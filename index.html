@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fable 5.2 vs Opus 5.5 vs GPT-6.1 Sol — 원샷 코딩 5라운드</title>
+<meta name="description" content="같은 프롬프트 5개를 세 모델에게 한 번씩만 시킨 결과물, 프롬프트 원문, 블라인드 심사 기록.">
+<style>
+:root{--bg:#0E0D0C;--paper:#171513;--ink:#F2EEE6;--sub:#CFC8BC;--muted:#8E877B;--line:#2B2723;--fable:#E0774F;--opus:#7FA3FF;--gpt:#4FD1A5;--gold:#E8C36A}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif}
+a{color:var(--gold)}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+header{padding:72px 0 36px;border-bottom:1px solid var(--line)}
+.eyebrow{font:600 12px/1 ui-monospace,Menlo,monospace;letter-spacing:.18em;color:var(--muted);text-transform:uppercase}
+h1{font:700 clamp(28px,5vw,48px)/1.2 Georgia,"Noto Serif KR",serif;margin:14px 0 12px}
+h2{font:700 26px/1.3 Georgia,"Noto Serif KR",serif;margin:0 0 6px}
+h3{font:600 13px/1 ui-monospace,Menlo,monospace;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;margin:28px 0 10px}
+p.lead{color:var(--sub);max-width:760px;margin:0}
+section{padding:44px 0;border-bottom:1px solid var(--line)}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media(max-width:820px){.grid3{grid-template-columns:1fr}}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.card .top{height:3px}
+.card .body{padding:14px 16px}
+.card video,.card img{display:block;width:100%;aspect-ratio:16/10;object-fit:cover;background:#000}
+.name{font-weight:700}
+.meta{color:var(--muted);font-size:13px}
+.btn{display:inline-block;margin-top:8px;font-size:13px;border:1px solid var(--line);border-radius:6px;padding:4px 10px;text-decoration:none;color:var(--ink)}
+.btn:hover{border-color:var(--gold)}
+pre{background:#0A0908;border:1px solid var(--line);border-radius:8px;padding:16px;white-space:pre-wrap;word-break:break-word;font:14px/1.6 ui-monospace,Menlo,monospace;color:var(--sub);margin:0}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:12px;letter-spacing:.06em}
+td.n{font:600 15px ui-monospace,Menlo,monospace;text-align:right}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px}
+.bar{height:10px;border-radius:5px}
+.totals{display:grid;gap:12px;margin-top:18px}
+.totals .row{display:grid;grid-template-columns:150px 1fr 110px;gap:14px;align-items:center}
+.totals .v{font:700 20px ui-monospace,Menlo,monospace;text-align:right}
+details{margin-top:12px}
+summary{cursor:pointer;color:var(--sub)}
+.note{color:var(--muted);font-size:14px}
+ul{color:var(--sub);padding-left:20px}
+footer{padding:36px 0 80px;color:var(--muted);font-size:13px}
+img.sheet{width:100%;border:1px solid var(--line);border-radius:8px;margin-top:10px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="eyebrow">One-shot coding · 5 rounds · 2026-11-10</div>
+  <h1>Fable 5.2 vs Opus 5.5 vs GPT-6.1 Sol</h1>
+  <p class="lead">웹에 공개된 프롬프트 5개를 세 모델에게 <b>한 번씩만</b> 시켰습니다. 고쳐 달라는 말도, 사람 손의 수정도 없습니다. 아래에서 프롬프트 원문과 결과물을 직접 열어 볼 수 있습니다.</p>
+</header>
+
+<section>
+  <h2>합계</h2>
+  <p class="note">세 모델이 이름을 가린 결과물(A·B·C) 캡처를 보고 서로 순위를 매겼습니다. 심사 1명당 1위 3점 · 2위 2점 · 3위 1점, 라운드당 최대 9점.</p>
+  <div class="totals" id="totals"></div>
+  <h3>라운드별 점수</h3>
+  <table id="rounds"></table>
+  <h3>만드는 데 걸린 시간 · 비용</h3>
+  <table id="cost"></table>
+  <p class="note">비용은 Claude Code가 보고한 API 환산 금액입니다. Codex는 금액을 알려 주지 않아 비워 두었습니다.</p>
+</section>
+
+<section>
+  <h2>규칙과 한계</h2>
+  <ul>
+    <li>모델: <code>claude-fable-5-2</code>, <code>claude-opus-5-5</code> (Claude Code, effort high) · <code>gpt-6.1-sol</code> (Codex CLI, reasoning effort high).</li>
+    <li>프롬프트는 출처의 원문 그대로이고, 끝에 "파일 하나로 저장, 질문 금지" 한 줄만 공통으로 붙였습니다. 3D 과제는 원문이 매우 길어 첫 문장만 썼습니다.</li>
+    <li>Claude 두 모델은 파일 읽기·쓰기만 허용했습니다. Codex는 평소 설정 그대로라 명령 실행과 자체 검증이 가능했습니다. Claude 쪽에 조금 불리한 조건입니다.</li>
+    <li>과제마다 1회만 실행했습니다. 다시 돌리면 결과가 달라질 수 있습니다.</li>
+    <li>심사는 캡처 화면만 보고 했습니다. 움직임의 부드러움, 조작감, 소리는 반영되지 않습니다.</li>
+    <li>심사위원이 곧 선수입니다. 자기 작품을 1위로 뽑은 표가 15표 중 8표였습니다. 그래서 자기 표를 뺀 점수도 함께 적었습니다.</li>
+    <li>게임은 화면의 파란색·빨간색만 보고 피하는 같은 봇으로, 3D 농구는 각 게임의 안내문대로 슛 세기만 다섯 단계로 바꿔 가며 녹화했습니다.</li>
+    <li>이 페이지와 영상 제작 과정에는 Claude Fable 5.2가 쓰였습니다. 선수 중 하나가 진행을 도왔다는 점을 감안해 직접 열어 보고 판단해 주세요.</li>
+  </ul>
+</section>
+
+<div id="tasks"></div>
+
+<footer>
+  결과물 HTML·SVG는 모델이 만든 그대로입니다. 녹화·심사 스크립트는 <a href="harness/">harness/</a> 폴더에, 전체 수치는 <a href="data.json">data.json</a>에 있습니다.
+</footer>
+</div>
+<script>
+const NAME={fable:"Fable 5.2",opus:"Opus 5.5",gpt:"GPT-6.1 Sol"}, COL={fable:"var(--fable)",opus:"var(--opus)",gpt:"var(--gpt)"}, M=["fable","opus","gpt"];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const mmss=s=>Math.floor(s/60)+"분 "+String(s%60).padStart(2,"0")+"초";
+const dot=m=>`<span class="dot" style="background:${COL[m]}"></span>`;
+fetch("data.json").then(r=>r.json()).then(d=>{
+  const max=Math.max(...M.map(m=>d.total[m]));
+  document.getElementById("totals").innerHTML=M.map(m=>`<div class="row"><div class="name">${dot(m)}${NAME[m]}</div><div><div class="bar" style="width:${d.total[m]/45*100}%;background:${COL[m]}"></div></div><div class="v">${d.total[m]}<span class="meta"> / 45</span></div></div>`).join("")+`<p class="note">자기 표를 뺀 점수(최대 30): ${M.map(m=>NAME[m]+" "+d.total_excluding_self[m]).join(" · ")}</p>`;
+  document.getElementById("rounds").innerHTML=`<tr><th>라운드</th>${M.map(m=>`<th>${dot(m)}${NAME[m]}</th>`).join("")}</tr>`+d.tasks.map((t,i)=>`<tr><td><a href="#${t.id}">R${i+1} ${esc(t.name)}</a></td>${M.map(m=>`<td class="n">${t.points[m]}</td>`).join("")}</tr>`).join("")+`<tr><td><b>합계</b></td>${M.map(m=>`<td class="n">${d.total[m]}</td>`).join("")}</tr>`;
+  document.getElementById("cost").innerHTML=`<tr><th></th>${M.map(m=>`<th>${dot(m)}${NAME[m]}</th>`).join("")}</tr><tr><td>5과제 합계 시간</td>${M.map(m=>`<td class="n">${mmss(d.seconds[m])}</td>`).join("")}</tr><tr><td>API 환산 비용</td>${M.map(m=>`<td class="n">${d.cost_usd[m]!=null?"$"+d.cost_usd[m].toFixed(2):"—"}</td>`).join("")}</tr>`;
+  document.getElementById("tasks").innerHTML=d.tasks.map((t,i)=>`<section id="${t.id}">
+    <div class="eyebrow">Round ${i+1}</div><h2>${esc(t.name)}</h2>
+    <p class="note">출처: <a href="${t.url}" target="_blank" rel="noopener">${esc(t.source)}</a></p>
+    <h3>프롬프트 원문</h3><pre>${esc(t.prompt)}</pre>
+    <p class="note">공통 꼬리말: ${esc(t.suffix)}</p>
+    <h3>결과물</h3>
+    <div class="grid3">${M.map(m=>{const r=t.results[m];return `<div class="card"><div class="top" style="background:${COL[m]}"></div>${r.video?`<video src="${r.video}#t=4" muted loop playsinline controls preload="metadata"></video>`:`<img src="${r.image}" alt="${NAME[m]} 결과">`}<div class="body"><div class="name">${NAME[m]} <span class="meta">${d.models[m]}</span></div><div class="meta">생성 ${mmss(r.seconds)} · ${(r.bytes/1024).toFixed(0)}KB${r.cost_usd!=null?" · $"+r.cost_usd.toFixed(2):""} · 심사 ${t.points[m]}점</div><a class="btn" href="${r.file}" target="_blank" rel="noopener">직접 열어 보기 →</a></div></div>`}).join("")}</div>
+    ${t.id==="game"?`<p class="note">추가 확인: Opus 5.5의 게임은 플레이어가 가운데에 가만히 서 있으면 적이 가장자리에서 맴돌며 다가오지 못했습니다(<a href="rec/gamestill-opus.mp4">녹화</a>). 같은 조건에서 Fable·GPT 게임은 4초 만에 잡혔습니다. 이 점은 블라인드 심사에 반영되지 않았습니다.</p>`:""}
+    <details><summary>블라인드 심사 기록 보기</summary>
+      <p class="note">심사위원이 본 화면 (A=${NAME[t.mapping.A]}, B=${NAME[t.mapping.B]}, C=${NAME[t.mapping.C]} — 심사 때는 가려져 있었습니다)</p>
+      <img class="sheet" src="${t.sheet}" loading="lazy" alt="심사용 캡처">
+      <table style="margin-top:14px"><tr><th>심사</th><th>순위</th><th>심사평 (모델이 쓴 그대로)</th></tr>${t.votes.map(v=>`<tr><td>${dot(v.judge)}${NAME[v.judge]}</td><td>${v.order.map(m=>NAME[m]).join(" › ")}</td><td>${M.map(m=>`<div><b>${NAME[m]}</b> — ${esc(v.reasons[m])}</div>`).join("")}</td></tr>`).join("")}</table>
+    </details>
+  </section>`).join("");
+});
+</script>
+</body>
+</html>

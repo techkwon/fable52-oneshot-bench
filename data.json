@@ -1,0 +1,473 @@
+{
+ "models": {
+  "fable": "claude-fable-5-2",
+  "opus": "claude-opus-5-5",
+  "gpt": "gpt-6.1-sol"
+ },
+ "tasks": [
+  {
+   "id": "motion",
+   "name": "모션 그래픽",
+   "source": "X(트위터)에서 약 200만 뷰가 난 한 줄 쇼릴 프롬프트",
+   "url": "https://www.ayautomate.com/resources/claude-opus-5-5-motion-graphics",
+   "prompt": "make a dynamic 15-second motion graphics video that shows what an incredible motion designer you are, like it's your showreel for a résumé. go all out.",
+   "suffix": "Save the result as one self-contained file named index.html in the current directory. Do it in one go, do not ask questions.",
+   "mapping": {
+    "A": "fable",
+    "B": "gpt",
+    "C": "opus"
+   },
+   "results": {
+    "fable": {
+     "file": "results/motion/fable/index.html",
+     "seconds": 1324,
+     "bytes": 58824,
+     "cost_usd": 8.16,
+     "turns": 30,
+     "video": "rec/motion-fable.mp4"
+    },
+    "opus": {
+     "file": "results/motion/opus/index.html",
+     "seconds": 903,
+     "bytes": 51881,
+     "cost_usd": 2.82,
+     "turns": 10,
+     "video": "rec/motion-opus.mp4"
+    },
+    "gpt": {
+     "file": "results/motion/gpt/index.html",
+     "seconds": 326,
+     "bytes": 25045,
+     "video": "rec/motion-gpt.mp4"
+    }
+   },
+   "votes": [
+    {
+     "judge": "fable",
+     "order": [
+      "fable",
+      "gpt",
+      "opus"
+     ],
+     "reasons": {
+      "fable": "풀스크린으로 패턴·3D·파티클·타이포 등 장면이 다양하고 완성도가 높아 쇼릴다운 인상이 가장 강하지만, 마지막 프레임은 거의 비어 있습니다.",
+      "gpt": "에디토리얼 디자인과 3D 오브젝트의 마감은 세련됐으나, 영상이 웹페이지 안 작은 카드에 갇혀 있고 다섯 번째 프레임은 화면 대부분이 비어 보입니다.",
+      "opus": "장면 구성은 다채롭지만 첫 프레임이 거의 비어 있고, 'MOV' 글자와 하단 'FPS' 텍스트가 잘려 보이는 등 마감이 가장 거칩니다."
+     }
+    },
+    {
+     "judge": "opus",
+     "order": [
+      "fable",
+      "opus",
+      "gpt"
+     ],
+     "reasons": {
+      "fable": "시스템 패턴, 3D 파티클, 분해되는 타이포, 키프레임 등 장면 구성이 다양하고 통일감 있게 다듬어져 쇼릴 의도에 가장 잘 맞으며 눈에 띄는 버그가 없습니다.",
+      "gpt": "3D 오브젝트와 타이포는 깔끔하지만 웹사이트 카드 레이아웃 안에 갇혀 쇼릴 느낌이 약하고 'E GRID.' 텍스트가 잘려 보입니다.",
+      "opus": "파티클, 토러스, 스트라이프 전환 등으로 역동성이 강하지만 일부 프레임이 어수선하고 마지막 'FPS' 텍스트가 화면 하단에서 잘립니다."
+     }
+    },
+    {
+     "judge": "gpt",
+     "order": [
+      "fable",
+      "gpt",
+      "opus"
+     ],
+     "reasons": {
+      "fable": "다채로운 패턴·입체 파티클·타이포그래피가 정돈된 구성으로 이어져 쇼릴의 역동성과 완성도가 가장 높습니다.",
+      "gpt": "입체 오브젝트와 선명한 타이포그래피가 세련되고 안정적이지만 반복되는 화면 틀과 넓은 여백이 역동성을 줄입니다.",
+      "opus": "과감한 색상과 파티클은 인상적이지만 일부 장면의 과도한 가림과 복잡한 구성이 가독성과 정돈감을 떨어뜨립니다."
+     }
+    }
+   ],
+   "points": {
+    "fable": 9,
+    "opus": 4,
+    "gpt": 5
+   },
+   "points_excluding_self": {
+    "fable": 6,
+    "opus": 2,
+    "gpt": 3
+   },
+   "sheet": "judge/motion.jpg"
+  },
+  {
+   "id": "physics",
+   "name": "물리 시뮬레이션",
+   "source": "Artificial Analysis MicroEval · Balls bouncing inside a spinning hexagon",
+   "url": "https://artificialanalysis.ai/microevals/balls-bouncing-inside-a-spinning-hexagon-1750176234580",
+   "prompt": "Create an animation in JS with 10 balls bouncing inside a spinning hexagon.",
+   "suffix": "Save the result as one self-contained file named index.html in the current directory. Do it in one go, do not ask questions.",
+   "mapping": {
+    "A": "opus",
+    "B": "fable",
+    "C": "gpt"
+   },
+   "results": {
+    "fable": {
+     "file": "results/physics/fable/index.html",
+     "seconds": 179,
+     "bytes": 12498,
+     "cost_usd": 1.25,
+     "turns": 9,
+     "video": "rec/physics-fable.mp4"
+    },
+    "opus": {
+     "file": "results/physics/opus/index.html",
+     "seconds": 80,
+     "bytes": 12994,
+     "cost_usd": 0.32,
+     "turns": 3,
+     "video": "rec/physics-opus.mp4"
+    },
+    "gpt": {
+     "file": "results/physics/gpt/index.html",
+     "seconds": 134,
+     "bytes": 15632,
+     "video": "rec/physics-gpt.mp4"
+    }
+   },
+   "votes": [
+    {
+     "judge": "fable",
+     "order": [
+      "fable",
+      "opus",
+      "gpt"
+     ],
+     "reasons": {
+      "opus": "공 10개와 회전 육각형이 깔끔하게 구현되고 육각형이 화면을 크게 채우지만, 시각적 연출은 B보다 단조롭습니다.",
+      "fable": "선명한 발광 공과 잔상 효과로 움직임이 가장 생동감 있게 보이며, 공이 모두 육각형 안에 머물고 하단 조작부도 깔끔합니다.",
+      "gpt": "육각형과 공이 화면에 비해 너무 작고 색이 흐리며, 공이 바닥에 뭉쳐 가라앉고 하단 UI가 화면 끝에서 잘려 보입니다."
+     }
+    },
+    {
+     "judge": "opus",
+     "order": [
+      "fable",
+      "opus",
+      "gpt"
+     ],
+     "reasons": {
+      "opus": "회전하는 육각형 안에 10개의 공이 깔끔하게 튀고 컨트롤 패널도 갖췄지만, 디자인은 B보다 다소 평범하다.",
+      "fable": "생생한 색감의 공, 모션 트레일, 빛나는 육각형 덕분에 가장 완성도가 높고, 공이 벽을 뚫고 나가는 버그도 보이지 않는다.",
+      "gpt": "요구 사항은 충족하지만 공이 지나치게 작고 색이 흐려 잘 보이지 않으며, 화면 대비 육각형이 작아 시각적 완성도가 가장 떨어진다."
+     }
+    },
+    {
+     "judge": "gpt",
+     "order": [
+      "opus",
+      "fable",
+      "gpt"
+     ],
+     "reasons": {
+      "opus": "공 10개가 회전하는 육각형 안에 안정적으로 유지되며, 선명한 색감과 입체 표현이 가장 깔끔하다.",
+      "fable": "회전과 공의 튀는 움직임이 잘 드러나지만, 강한 발광과 잔상이 공의 윤곽을 흐린다.",
+      "gpt": "육각형의 회전은 보이지만, 공이 작고 어두우며 후반에는 바닥에 모여 튀는 움직임이 덜 두드러진다."
+     }
+    }
+   ],
+   "points": {
+    "fable": 8,
+    "opus": 7,
+    "gpt": 3
+   },
+   "points_excluding_self": {
+    "fable": 5,
+    "opus": 5,
+    "gpt": 2
+   },
+   "sheet": "judge/physics.jpg"
+  },
+  {
+   "id": "svg",
+   "name": "SVG 일러스트",
+   "source": "Simon Willison의 펠리컨 벤치마크",
+   "url": "https://simonwillison.net/tags/pelican-riding-a-bicycle/",
+   "prompt": "Generate an SVG of a pelican riding a bicycle",
+   "suffix": "Save the result as one file named index.svg in the current directory. Do it in one go, do not ask questions.",
+   "mapping": {
+    "A": "opus",
+    "B": "fable",
+    "C": "gpt"
+   },
+   "results": {
+    "fable": {
+     "file": "results/svg/fable/index.svg",
+     "seconds": 197,
+     "bytes": 13456,
+     "cost_usd": 1.11,
+     "turns": 5,
+     "image": "rec/svg-fable.png"
+    },
+    "opus": {
+     "file": "results/svg/opus/index.svg",
+     "seconds": 66,
+     "bytes": 7702,
+     "cost_usd": 0.25,
+     "turns": 4,
+     "image": "rec/svg-opus.png"
+    },
+    "gpt": {
+     "file": "results/svg/gpt/index.svg",
+     "seconds": 65,
+     "bytes": 7670,
+     "image": "rec/svg-gpt.png"
+    }
+   },
+   "votes": [
+    {
+     "judge": "fable",
+     "order": [
+      "fable",
+      "gpt",
+      "opus"
+     ],
+     "reasons": {
+      "opus": "펠리컨과 자전거가 정확하고 깔끔하지만 배경과 디테일이 단순해 셋 중 가장 평범합니다.",
+      "fable": "해변 배경, 바구니 속 물고기, 스카프 등 디테일이 풍부하고 핸들을 잡고 페달을 밟는 자세가 가장 자연스럽고 완성도가 높습니다.",
+      "gpt": "통일된 외곽선과 차분한 색감의 일러스트 스타일이 세련되지만 바퀴가 아래쪽 가장자리에 너무 붙어 구도가 다소 빡빡합니다."
+     }
+    },
+    {
+     "judge": "opus",
+     "order": [
+      "fable",
+      "gpt",
+      "opus"
+     ],
+     "reasons": {
+      "opus": "펠리컨이 자전거를 타는 모습은 깔끔하지만, 날개가 핸들에 제대로 닿지 않고 배경과 디테일이 단순해 상대적으로 밋밋합니다.",
+      "fable": "해변 배경, 스카프, 생선 바구니, 핸들을 잡은 날개까지 갖춰 완성도가 가장 높고 눈에 띄는 오류도 없습니다.",
+      "gpt": "캐릭터 스타일은 매력적이고 세련됐지만, 바퀴와 지면이 화면 하단에서 잘려 보이는 클리핑 문제가 있습니다."
+     }
+    },
+    {
+     "judge": "gpt",
+     "order": [
+      "gpt",
+      "fable",
+      "opus"
+     ],
+     "reasons": {
+      "opus": "요청은 충족하지만 날개와 핸들의 연결이 어색하고 세부 표현의 완성도가 낮습니다.",
+      "fable": "안정적인 구도와 풍부한 배경으로 자전거를 타는 펠리컨을 명확하게 표현했습니다.",
+      "gpt": "조화로운 색감과 일관된 선, 자연스러운 탑승 자세로 가장 세련된 완성도를 보여줍니다."
+     }
+    }
+   ],
+   "points": {
+    "fable": 8,
+    "opus": 3,
+    "gpt": 7
+   },
+   "points_excluding_self": {
+    "fable": 5,
+    "opus": 2,
+    "gpt": 4
+   },
+   "sheet": "judge/svg.jpg"
+  },
+  {
+   "id": "three",
+   "name": "3D (Three.js)",
+   "source": "WorldCoder-Bench (arXiv 2606.01869) P253 과제의 첫 문장",
+   "url": "https://arxiv.org/html/2606.01869",
+   "prompt": "Create a single HTML file with an interactive 3D basketball free throw game using Three.js.",
+   "suffix": "Save the result as one self-contained file named index.html in the current directory. Do it in one go, do not ask questions.",
+   "mapping": {
+    "A": "fable",
+    "B": "opus",
+    "C": "gpt"
+   },
+   "results": {
+    "fable": {
+     "file": "results/three/fable/index.html",
+     "seconds": 1037,
+     "bytes": 60883,
+     "cost_usd": 6.38,
+     "turns": 22,
+     "video": "rec/three-fable.mp4"
+    },
+    "opus": {
+     "file": "results/three/opus/index.html",
+     "seconds": 842,
+     "bytes": 66824,
+     "cost_usd": 2.71,
+     "turns": 8,
+     "video": "rec/three-opus.mp4"
+    },
+    "gpt": {
+     "file": "results/three/gpt/index.html",
+     "seconds": 461,
+     "bytes": 706662,
+     "video": "rec/three-gpt.mp4"
+    }
+   },
+   "votes": [
+    {
+     "judge": "fable",
+     "order": [
+      "fable",
+      "opus",
+      "gpt"
+     ],
+     "reasons": {
+      "fable": "관중석·광고 보드·코트가 어우러진 영화 같은 경기장에 점수 상승과 'OFF THE GLASS', 'NO GOOD' 판정이 깔끔하게 표시되어 완성도가 가장 높고 눈에 띄는 버그가 없습니다.",
+      "opus": "전광판·파워 게이지·큰 공·백보드 지지대까지 갖춰 게임 요소는 풍부하지만, 큰 판정 문구가 전광판과 겹치고 HUD가 다소 어수선합니다.",
+      "gpt": "에디토리얼풍 레이아웃은 세련됐지만 3D 코트와 공이 너무 작게 보여 몰입감이 떨어지고, 'Next one' 문구가 코트 위를 가립니다."
+     }
+    },
+    {
+     "judge": "opus",
+     "order": [
+      "opus",
+      "fable",
+      "gpt"
+     ],
+     "reasons": {
+      "fable": "관중석이 있는 경기장과 점수, 'OFF THE GLASS' 같은 피드백까지 갖춰 완성도가 높지만, 공이 작게 보이고 상단 HUD 요소가 다소 빈약하다.",
+      "opus": "전광판, 파워 게이지, 'SHOOTER'S ROLL'·'AIR BALL' 같은 연출로 프리드로 게임을 가장 풍부하게 구현했고, 눈에 띄는 버그도 없다.",
+      "gpt": "깔끔한 UI 디자인은 세련됐지만, 멀리서 내려다보는 시점 탓에 공과 골대가 너무 작고 슛 과정이 잘 드러나지 않아 게임성이 약하다."
+     }
+    },
+    {
+     "judge": "gpt",
+     "order": [
+      "gpt",
+      "opus",
+      "fable"
+     ],
+     "reasons": {
+      "fable": "球场氛围完整但画面偏暗、篮球与状态文字较小，操作反馈不够醒目。",
+      "opus": "立体球场、篮球和投篮结果反馈清晰，但密集彩色看台与大字特效略显杂乱。",
+      "gpt": "立体球场与交互面板布局精致统一，比分和投篮状态变化明确，未见明显布局缺陷。"
+     }
+    }
+   ],
+   "points": {
+    "fable": 6,
+    "opus": 7,
+    "gpt": 5
+   },
+   "points_excluding_self": {
+    "fable": 3,
+    "opus": 4,
+    "gpt": 2
+   },
+   "sheet": "judge/three.jpg"
+  },
+  {
+   "id": "game",
+   "name": "게임 (Phaser 3)",
+   "source": "We Asked 10 LLMs to Build the Same Game",
+   "url": "https://aigamingdev.pages.dev/blog/llm-benchmark-dodge/",
+   "prompt": "Create a complete, playable Phaser.js 3 game as a single HTML file. Player is a blue circle that moves with WASD/arrow keys. Red circles spawn from screen edges and chase the player with simple AI (seek behavior). Score increases by 1 every second. Collision with any red circle = game over. Press R to restart after game over. Enemies wrap around screen edges. Player wraps around screen edges too. Enemies speed up gradually as score increases. Player has a subtle glow/pulse effect. Dark theme. 680x480. Centered canvas with instructions below.",
+   "suffix": "Save the result as one self-contained file named index.html in the current directory. Do it in one go, do not ask questions.",
+   "mapping": {
+    "A": "opus",
+    "B": "gpt",
+    "C": "fable"
+   },
+   "results": {
+    "fable": {
+     "file": "results/game/fable/index.html",
+     "seconds": 320,
+     "bytes": 19402,
+     "cost_usd": 1.94,
+     "turns": 9,
+     "video": "rec/game-fable.mp4"
+    },
+    "opus": {
+     "file": "results/game/opus/index.html",
+     "seconds": 73,
+     "bytes": 13344,
+     "cost_usd": 0.31,
+     "turns": 4,
+     "video": "rec/game-opus.mp4"
+    },
+    "gpt": {
+     "file": "results/game/gpt/index.html",
+     "seconds": 295,
+     "bytes": 1206386,
+     "video": "rec/game-gpt.mp4"
+    }
+   },
+   "votes": [
+    {
+     "judge": "fable",
+     "order": [
+      "gpt",
+      "opus",
+      "fable"
+     ],
+     "reasons": {
+      "opus": "요구사항을 깔끔하게 충족하고 게임오버·재시작도 정상 동작하지만, 플레이어 글로우가 약하고 화면 연출이 다소 평범합니다.",
+      "gpt": "HUD와 글로우, 게임오버 오버레이까지 완성도가 가장 높고 적 스폰·추적·랩어라운드·재시작이 모두 버그 없이 보입니다.",
+      "fable": "분위기는 좋으나 적이 한두 개뿐이라 게임성이 빈약하고, 마지막 프레임에서 플레이어 글로우가 캔버스 하단 경계를 넘어 안내문 영역으로 번져 보입니다."
+     }
+    },
+    {
+     "judge": "opus",
+     "order": [
+      "gpt",
+      "opus",
+      "fable"
+     ],
+     "reasons": {
+      "opus": "그리드 배경, 점수와 최고 기록 표시, 게임 오버 후 R 재시작까지 잘 작동하지만, 캔버스가 작고 화면이 다소 밋밋합니다.",
+      "gpt": "적이 점점 늘어나며 추격하고 세 자리 점수 HUD, 반투명 게임 오버 오버레이, 재시작이 매끄럽게 작동해 완성도가 가장 높습니다.",
+      "fable": "글로우와 레트로 폰트가 돋보이지만, 점수 7에서 일찍 게임 오버가 되어 오래 머물고 일부 프레임에서는 플레이어가 잘 보이지 않습니다."
+     }
+    },
+    {
+     "judge": "gpt",
+     "order": [
+      "gpt",
+      "opus",
+      "fable"
+     ],
+     "reasons": {
+      "opus": "격자 배경과 절제된 발광이 조화롭고 종료·재시작 흐름도 보이지만 글씨의 가독성이 낮습니다.",
+      "gpt": "선명한 화면 구성과 읽기 쉬운 점수 표시가 돋보이며 적의 증가부터 종료·재시작까지 가장 명확하게 보입니다.",
+      "fable": "종료·재시작은 확인되지만 화면 구성이 단조롭고 플레이어의 발광이 상대적으로 과해 시각적 균형이 떨어집니다."
+     }
+    }
+   ],
+   "points": {
+    "fable": 3,
+    "opus": 6,
+    "gpt": 9
+   },
+   "points_excluding_self": {
+    "fable": 2,
+    "opus": 4,
+    "gpt": 6
+   },
+   "sheet": "judge/game.jpg"
+  }
+ ],
+ "total": {
+  "fable": 34,
+  "opus": 27,
+  "gpt": 29
+ },
+ "total_excluding_self": {
+  "fable": 21,
+  "opus": 17,
+  "gpt": 17
+ },
+ "seconds": {
+  "fable": 3057,
+  "opus": 1964,
+  "gpt": 1281
+ },
+ "cost_usd": {
+  "fable": 18.84,
+  "opus": 6.41
+ }
+}

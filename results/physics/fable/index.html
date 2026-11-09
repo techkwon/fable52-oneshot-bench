@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>10 Balls in a Spinning Hexagon</title>
+<style>
+  html, body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+    background: #090c13;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  canvas {
+    display: block;
+    width: 100vw;
+    height: 100vh;
+    touch-action: none;
+    cursor: crosshair;
+  }
+  .panel {
+    position: fixed;
+    left: 50%;
+    bottom: 16px;
+    transform: translateX(-50%);
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 10px 18px;
+    max-width: calc(100vw - 32px);
+    box-sizing: border-box;
+    padding: 10px 16px;
+    color: #c5cfe3;
+    font-size: 12px;
+    letter-spacing: .02em;
+    background: rgba(18, 23, 36, .78);
+    border: 1px solid rgba(255, 255, 255, .09);
+    border-radius: 12px;
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
+    user-select: none;
+  }
+  .panel label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+  }
+  .panel output {
+    display: inline-block;
+    min-width: 3.2em;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    color: #8fb8ff;
+  }
+  .panel input[type=range] {
+    width: 120px;
+    accent-color: #6aa5ff;
+  }
+  .panel button {
+    font: inherit;
+    color: inherit;
+    min-width: 62px;
+    padding: 6px 12px;
+    background: rgba(255, 255, 255, .07);
+    border: 1px solid rgba(255, 255, 255, .13);
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .panel button:hover { background: rgba(255, 255, 255, .14); }
+  .panel button:focus-visible,
+  .panel input:focus-visible { outline: 2px solid #6aa5ff; outline-offset: 2px; }
+  .hint { opacity: .55; }
+</style>
+</head>
+<body>
+<canvas id="stage" aria-label="Ten balls bouncing inside a spinning hexagon"></canvas>
+
+<div class="panel">
+  <label>Spin
+    <input id="spin" type="range" min="-3" max="3" step="0.05">
+    <output id="spinOut"></output>
+  </label>
+  <label>Gravity
+    <input id="gravity" type="range" min="0" max="8" step="0.1">
+    <output id="gravityOut"></output>
+  </label>
+  <button id="pause" type="button">Pause</button>
+  <button id="reset" type="button">Reset</button>
+  <span class="hint">click to kick the balls</span>
+</div>
+
+<script>
+'use strict';
+
+/* ---------- constants (world units: hexagon circumradius = 1) ---------- */
+const TAU = Math.PI * 2;
+const SIDES = 6;
+const BALL_COUNT = 10;
+const SEG = TAU / SIDES;
+const APOTHEM = Math.cos(Math.PI / SIDES);   // centre -> wall distance
+const WALL_RESTITUTION = 0.9;
+const BALL_RESTITUTION = 0.95;
+const WALL_FRICTION = 0.3;
+const MAX_SPEED = 9;                         // keeps fast balls from tunnelling
+const STEP = 1 / 240;                        // fixed physics timestep (s)
+const TRAIL_LENGTH = 14;
+
+const sim = { angle: 0, omega: 0.8, gravity: 3.5, paused: false };
+let balls = [];
+const heat = new Float32Array(SIDES);        // per-wall impact glow
+
+/* ---------- setup ---------- */
+function reset() {
+  balls = [];
+  sim.angle = 0;
+  heat.fill(0);
+  for (let i = 0; i < BALL_COUNT; i++) {
+    const r = 0.07 + 0.05 * Math.random();
+    let x = 0, y = 0, tries = 0, clash = true;
+    while (clash && tries++ < 2000) {
+      const a = Math.random() * TAU;
+      const d = Math.sqrt(Math.random()) * (APOTHEM - r - 0.02);
+      x = Math.cos(a) * d;
+      y = Math.sin(a) * d;
+      clash = balls.some(b => Math.hypot(b.x - x, b.y - y) < b.r + r + 0.01);
+    }
+    const speed = 1 + Math.random() * 1.8;
+    const dir = Math.random() * TAU;
+    balls.push({
+      x, y,
+      vx: Math.cos(dir) * speed,
+      vy: Math.sin(dir) * speed,
+      r,
+      m: r * r,                              // mass ~ area
+      rot: Math.random() * TAU,              // visual orientation
+      w: 0,                                  // angular velocity
+      hue: (i * 36 + 205) % 360,
+      trail: []
+    });
+  }
+}
+
+/* ---------- physics ---------- */
+function step(dt) {
+  sim.angle += sim.omega * dt;
+
+  // integrate
+  for (const b of balls) {
+    b.vy += sim.gravity * dt;
+    b.x += b.vx * dt;
+    b.y += b.vy * dt;
+    b.rot += b.w * dt;
+  }
+
+  // ball <-> ball
+  for (let i = 0; i < balls.length; i++) {
+    const a = balls[i];
+    for (let j = i + 1; j < balls.length; j++) {
+      const b = balls[j];
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const min = a.r + b.r;
+      const d2 = dx * dx + dy * dy;
+      if (d2 >= min * min) continue;
+      const d = Math.sqrt(d2) || 1e-9;
+      const nx = dx / d, ny = dy / d;
+      const ima = 1 / a.m, imb = 1 / b.m, imSum = ima + imb;
+
+      // separate, lighter ball moves more
+      const overlap = min - d;
+      a.x -= nx * overlap * (ima / imSum);
+      a.y -= ny * overlap * (ima / imSum);
+      b.x += nx * overlap * (imb / imSum);
+      b.y += ny * overlap * (imb / imSum);
+
+      // impulse along the contact normal
+      const vn = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny;
+      if (vn >= 0) continue;
+      const jn = -(1 + BALL_RESTITUTION) * vn / imSum;
+      a.vx -= jn * ima * nx;
+      a.vy -= jn * ima * ny;
+      b.vx += jn * imb * nx;
+      b.vy += jn * imb * ny;
+    }
+  }
+
+  // ball <-> rotating walls.
+  // The hexagon is convex, so staying inside it is exactly "stay behind each
+  // of the six wall planes" - no special corner handling is needed.
+  for (const b of balls) {
+    for (let i = 0; i < SIDES; i++) {
+      const phi = sim.angle + (i + 0.5) * SEG;
+      const ux = Math.cos(phi), uy = Math.sin(phi);       // outward wall normal
+      const pen = b.x * ux + b.y * uy + b.r - APOTHEM;
+      if (pen <= 0) continue;
+
+      b.x -= ux * pen;
+      b.y -= uy * pen;
+
+      // velocity of the wall at the contact point (rigid rotation about origin)
+      const cx = b.x + ux * b.r, cy = b.y + uy * b.r;
+      const wvx = -sim.omega * cy, wvy = sim.omega * cx;
+
+      // work in the wall's frame at the contact point
+      const rvx = b.vx - wvx, rvy = b.vy - wvy;
+      const vn = rvx * ux + rvy * uy;                     // > 0: moving into wall
+      if (vn <= 0) continue;
+
+      const e = vn < 0.12 ? 0 : WALL_RESTITUTION;         // let slow contacts settle
+      const jn = (1 + e) * vn;
+      b.vx -= jn * ux;
+      b.vy -= jn * uy;
+
+      // Coulomb friction with spin (solid disc, I = m r^2 / 2)
+      const tx = uy, ty = -ux;
+      const slip = rvx * tx + rvy * ty - b.w * b.r;
+      const jt = Math.max(-WALL_FRICTION * jn, Math.min(WALL_FRICTION * jn, -slip / 3));
+      b.vx += jt * tx;
+      b.vy += jt * ty;
+      b.w -= 2 * jt / b.r;
+
+      heat[i] = Math.min(1, heat[i] + vn * 0.3);
+    }
+
+    const sp = Math.hypot(b.vx, b.vy);
+    if (sp > MAX_SPEED) {
+      b.vx *= MAX_SPEED / sp;
+      b.vy *= MAX_SPEED / sp;
+    }
+  }
+}
+
+/* ---------- rendering ---------- */
+const canvas = document.getElementById('stage');
+const ctx = canvas.getContext('2d');
+let W = 0, H = 0, dpr = 1, scale = 1, originX = 0, originY = 0, backdrop = null;
+
+function resize() {
+  dpr = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth;
+  H = window.innerHeight;
+  canvas.width = Math.round(W * dpr);
+  canvas.height = Math.round(H * dpr);
+
+  const usableH = Math.max(120, H - 84);     // leave room for the control panel
+  scale = Math.max(40, Math.min(W, usableH) * 0.46);
+  originX = W / 2;
+  originY = usableH / 2 + 6;
+
+  backdrop = ctx.createRadialGradient(originX, originY, 0, originX, originY, Math.max(W, H) * 0.75);
+  backdrop.addColorStop(0, '#182036');
+  backdrop.addColorStop(0.55, '#0d111c');
+  backdrop.addColorStop(1, '#07090e');
+}
+
+function render() {
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.fillStyle = backdrop;
+  ctx.fillRect(0, 0, W, H);
+  ctx.translate(originX, originY);
+
+  // hexagon: stroke is drawn so that its inner edge is the physical wall
+  const lw = Math.max(3, scale * 0.024);
+  const drawR = (APOTHEM * scale + lw / 2) / APOTHEM;
+  const vx = [], vy = [];
+  for (let i = 0; i < SIDES; i++) {
+    const a = sim.angle + i * SEG;
+    vx.push(Math.cos(a) * drawR);
+    vy.push(Math.sin(a) * drawR);
+  }
+
+  ctx.beginPath();
+  for (let i = 0; i < SIDES; i++) ctx.lineTo(vx[i], vy[i]);
+  ctx.closePath();
+  ctx.fillStyle = 'rgba(120, 160, 255, 0.045)';
+  ctx.fill();
+
+  // trails
+  ctx.lineCap = 'round';
+  for (const b of balls) {
+    const t = b.trail, n = t.length;
+    for (let k = 1; k < n; k++) {
+      const f = k / n;
+      ctx.strokeStyle = `hsla(${b.hue}, 90%, 65%, ${0.16 * f})`;
+      ctx.lineWidth = b.r * scale * 1.5 * f;
+      ctx.beginPath();
+      ctx.moveTo(t[k - 1].x * scale, t[k - 1].y * scale);
+      ctx.lineTo(t[k].x * scale, t[k].y * scale);
+      ctx.stroke();
+    }
+  }
+
+  // walls (each one glows briefly when hit)
+  ctx.lineWidth = lw;
+  for (let i = 0; i < SIDES; i++) {
+    const j = (i + 1) % SIDES;
+    const h = heat[i];
+    ctx.strokeStyle = `hsl(${215 - 25 * h}, ${75 + 20 * h}%, ${60 + 30 * h}%)`;
+    ctx.shadowColor = `hsla(${215 - 25 * h}, 100%, 65%, ${0.55 + 0.45 * h})`;
+    ctx.shadowBlur = 10 + 26 * h;
+    ctx.beginPath();
+    ctx.moveTo(vx[i], vy[i]);
+    ctx.lineTo(vx[j], vy[j]);
+    ctx.stroke();
+  }
+
+  // balls
+  for (const b of balls) {
+    const x = b.x * scale, y = b.y * scale, r = b.r * scale;
+    const g = ctx.createRadialGradient(x - r * 0.35, y - r * 0.4, r * 0.08, x, y, r);
+    g.addColorStop(0, `hsl(${b.hue}, 100%, 84%)`);
+    g.addColorStop(0.5, `hsl(${b.hue}, 88%, 60%)`);
+    g.addColorStop(1, `hsl(${b.hue}, 80%, 34%)`);
+    ctx.shadowColor = `hsla(${b.hue}, 95%, 60%, 0.55)`;
+    ctx.shadowBlur = r * 0.9;
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, TAU);
+    ctx.fill();
+
+    // two small marks so the ball's spin is visible
+    ctx.shadowBlur = 0;
+    const mx = Math.cos(b.rot) * r * 0.56, my = Math.sin(b.rot) * r * 0.56;
+    ctx.fillStyle = 'rgba(255, 255, 255, 0.6)';
+    ctx.beginPath();
+    ctx.arc(x + mx, y + my, r * 0.15, 0, TAU);
+    ctx.fill();
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.28)';
+    ctx.beginPath();
+    ctx.arc(x - mx, y - my, r * 0.15, 0, TAU);
+    ctx.fill();
+  }
+  ctx.shadowBlur = 0;
+}
+
+/* ---------- main loop ---------- */
+let last = 0, acc = 0;
+function frame(now) {
+  const dt = Math.min(0.05, Math.max(0, (now - last) / 1000));
+  last = now;
+  if (!sim.paused) {
+    acc += dt;
+    while (acc >= STEP) { step(STEP); acc -= STEP; }
+    const decay = Math.exp(-dt * 5);
+    for (let i = 0; i < SIDES; i++) heat[i] *= decay;
+    for (const b of balls) {
+      b.trail.push({ x: b.x, y: b.y });
+      if (b.trail.length > TRAIL_LENGTH) b.trail.shift();
+    }
+  }
+  render();
+  requestAnimationFrame(frame);
+}
+
+/* ---------- controls ---------- */
+const spinInput = document.getElementById('spin');
+const spinOut = document.getElementById('spinOut');
+const gravityInput = document.getElementById('gravity');
+const gravityOut = document.getElementById('gravityOut');
+const pauseBtn = document.getElementById('pause');
+const resetBtn = document.getElementById('reset');
+
+function syncLabels() {
+  spinOut.textContent = sim.omega.toFixed(2);
+  gravityOut.textContent = sim.gravity.toFixed(1);
+  pauseBtn.textContent = sim.paused ? 'Play' : 'Pause';
+}
+function togglePause() {
+  sim.paused = !sim.paused;
+  syncLabels();
+}
+
+spinInput.value = String(sim.omega);
+gravityInput.value = String(sim.gravity);
+spinInput.addEventListener('input', () => { sim.omega = Number(spinInput.value); syncLabels(); });
+gravityInput.addEventListener('input', () => { sim.gravity = Number(gravityInput.value); syncLabels(); });
+pauseBtn.addEventListener('click', togglePause);
+resetBtn.addEventListener('click', reset);
+
+window.addEventListener('keydown', e => {
+  const tag = e.target && e.target.tagName;
+  if (tag === 'BUTTON' || tag === 'INPUT') return;
+  if (e.code === 'Space') { e.preventDefault(); togglePause(); }
+  else if (e.key === 'r' || e.key === 'R') reset();
+});
+
+// click / tap: push every ball away from the pointer
+canvas.addEventListener('pointerdown', e => {
+  const px = (e.clientX - originX) / scale;
+  const py = (e.clientY - originY) / scale;
+  for (const b of balls) {
+    const dx = b.x - px, dy = b.y - py;
+    const d = Math.hypot(dx, dy) || 1e-6;
+    const kick = 4 / (1 + 9 * d * d);
+    b.vx += dx / d * kick;
+    b.vy += dy / d * kick;
+  }
+});
+
+window.addEventListener('resize', resize);
+
+reset();
+resize();
+syncLabels();
+requestAnimationFrame(now => { last = now; frame(now); });
+</script>
+</body>
+</html>
