@@ -24,6 +24,7 @@ section{padding:44px 0;border-bottom:1px solid var(--line)}
 .card .top{height:3px}
 .card .body{padding:14px 16px}
 .card video,.card img{display:block;width:100%;aspect-ratio:16/10;object-fit:cover;background:#000}
+.card img{object-fit:contain;background:#fff}
 .name{font-weight:700}
 .meta{color:var(--muted);font-size:13px}
 .btn{display:inline-block;margin-top:8px;font-size:13px;border:1px solid var(--line);border-radius:6px;padding:4px 10px;text-decoration:none;color:var(--ink)}
@@ -102,6 +103,7 @@ fetch("data.json").then(r=>r.json()).then(d=>{
     <p class="note">공통 꼬리말: ${esc(t.suffix)}</p>
     <h3>결과물</h3>
     <div class="grid3">${M.map(m=>{const r=t.results[m];return `<div class="card"><div class="top" style="background:${COL[m]}"></div>${r.video?`<video src="${r.video}#t=4" muted loop playsinline controls preload="metadata"></video>`:`<img src="${r.image}" alt="${NAME[m]} 결과">`}<div class="body"><div class="name">${NAME[m]} <span class="meta">${d.models[m]}</span></div><div class="meta">생성 ${mmss(r.seconds)} · ${(r.bytes/1024).toFixed(0)}KB${r.cost_usd!=null?" · $"+r.cost_usd.toFixed(2):""} · 심사 ${t.points[m]}점</div><a class="btn" href="${r.file}" target="_blank" rel="noopener">직접 열어 보기 →</a></div></div>`}).join("")}</div>
+    ${t.note?`<p class="note">${esc(t.note)}</p>`:""}
     ${t.id==="game"?`<p class="note">추가 확인: Opus 5.5의 게임은 플레이어가 가운데에 가만히 서 있으면 적이 가장자리에서 맴돌며 다가오지 못했습니다(<a href="rec/gamestill-opus.mp4">녹화</a>). 같은 조건에서 Fable·GPT 게임은 4초 만에 잡혔습니다. 이 점은 블라인드 심사에 반영되지 않았습니다.</p>`:""}
     <details><summary>블라인드 심사 기록 보기</summary>
       <p class="note">심사위원이 본 화면 (A=${NAME[t.mapping.A]}, B=${NAME[t.mapping.B]}, C=${NAME[t.mapping.C]} — 심사 때는 가려져 있었습니다)</p>
