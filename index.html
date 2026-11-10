@@ -45,6 +45,11 @@ summary{cursor:pointer;color:var(--sub)}
 ul{color:var(--sub);padding-left:20px}
 footer{padding:36px 0 80px;color:var(--muted);font-size:13px}
 img.sheet{width:100%;border:1px solid var(--line);border-radius:8px;margin-top:10px}
+.watch{display:inline-flex;align-items:center;gap:14px;margin-top:24px;padding:14px 20px;background:var(--fable);color:#14100d;border-radius:8px;text-decoration:none}
+.watch:hover{filter:brightness(1.08)}
+.watch .play{font-size:22px}
+.watch b{display:block;font-size:17px}
+.watch small{display:block;font-size:13px;opacity:.8}
 </style>
 </head>
 <body>
@@ -53,6 +58,7 @@ img.sheet{width:100%;border:1px solid var(--line);border-radius:8px;margin-top:1
   <div class="eyebrow">One-shot coding · 5 rounds · 2026-11-10</div>
   <h1>Fable 5.2 vs Opus 5.5 vs GPT-6.1 Sol</h1>
   <p class="lead">웹에 공개된 프롬프트 5개를 세 모델에게 <b>한 번씩만</b> 시켰습니다. 고쳐 달라는 말도, 사람 손의 수정도 없습니다. 아래에서 프롬프트 원문과 결과물을 직접 열어 볼 수 있습니다.</p>
+  <a class="watch" href="https://youtu.be/vfKM1ovff6M" target="_blank" rel="noopener"><span class="play">▶</span><span><b>10분 영상으로 보기</b><small>다섯 판의 실제 화면과 블라인드 심사 뒷이야기 · YouTube 테크권(TechKwon)</small></span></a>
 </header>
 
 <section>
@@ -83,6 +89,7 @@ img.sheet{width:100%;border:1px solid var(--line);border-radius:8px;margin-top:1
 <div id="tasks"></div>
 
 <footer>
+  이 실험을 정리한 영상: <a href="https://youtu.be/vfKM1ovff6M" target="_blank" rel="noopener">youtu.be/vfKM1ovff6M</a><br>
   결과물 HTML·SVG는 모델이 만든 그대로입니다. 녹화·심사 스크립트는 <a href="harness/">harness/</a> 폴더에, 전체 수치는 <a href="data.json">data.json</a>에 있습니다.
 </footer>
 </div>
