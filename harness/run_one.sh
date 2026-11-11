@@ -1,7 +1,7 @@
 #!/bin/zsh
 # usage: run_one.sh <model: fable|opus|gpt|carbon> <task> <workdir>
 M=$1; T=$2
-BASE=/Users/techkwon/Developer/MyApps/Youtube/fable52-lecture/samples
+BASE=.
 WORK="$3/$T/$M"; mkdir -p "$WORK"; cd "$WORK"
 PROMPT="$(cat $BASE/prompts/$T.txt)"
 START=$(date +%s)
