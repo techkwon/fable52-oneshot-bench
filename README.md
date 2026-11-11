@@ -20,3 +20,5 @@
 - `carbon.html` — 4자 재대결 페이지 · `carbon.json` — 수치와 투표
 - `results/<과제>/carbon/`, `rec/*-carbon.mp4`, `rec/svg4-*.png`, `judge4/` — Carbon 결과물, 녹화, 4자 심사 캡처(정정 전 캡처 포함)
 - `harness/judge4.sh`, `make_sheet4.py`, `svgfit.mjs`, `build_site4.py` — 추가한 스크립트
+
+후속편 영상: https://youtu.be/XqIiNqqNp3k
