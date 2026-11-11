@@ -12,3 +12,11 @@
 규칙과 한계는 페이지의 "규칙과 한계"에 적었습니다. 과제마다 1회만 실행했으므로 다시 돌리면 결과가 달라질 수 있습니다.
 
 영상: https://youtu.be/vfKM1ovff6M
+
+## 후속: Gemini 4 Carbon (2026-11-11)
+
+같은 프롬프트 5개를 `gemini-4-carbon`(Antigravity CLI)에게 한 번씩 시키고, 네 모델 결과를 처음부터 다시 블라인드 심사했습니다.
+
+- `carbon.html` — 4자 재대결 페이지 · `carbon.json` — 수치와 투표
+- `results/<과제>/carbon/`, `rec/*-carbon.mp4`, `rec/svg4-*.png`, `judge4/` — Carbon 결과물, 녹화, 4자 심사 캡처(정정 전 캡처 포함)
+- `harness/judge4.sh`, `make_sheet4.py`, `svgfit.mjs`, `build_site4.py` — 추가한 스크립트

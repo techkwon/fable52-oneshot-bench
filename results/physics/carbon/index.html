@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>10 Balls Bouncing Inside a Spinning Hexagon</title>
+  <style>
+    :root {
+      --bg-inner: #11182b;
+      --bg-outer: #060913;
+      --panel-bg: rgba(13, 19, 36, 0.76);
+      --panel-border: rgba(148, 163, 184, 0.18);
+      --text-main: #e2e8f0;
+      --text-dim: #94a3b8;
+      --accent: #38bdf8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: radial-gradient(circle at 50% 45%, var(--bg-inner) 0%, var(--bg-outer) 75%);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: var(--text-main);
+    }
+
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      cursor: pointer;
+    }
+
+    .hud {
+      position: fixed;
+      top: 18px;
+      left: 18px;
+      width: 250px;
+      padding: 14px 16px;
+      border-radius: 14px;
+      background: var(--panel-bg);
+      border: 1px solid var(--panel-border);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.45);
+      z-index: 10;
+      font-size: 12px;
+    }
+
+    .hud-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid rgba(148, 163, 184, 0.14);
+    }
+
+    .hud-title {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      color: #f8fafc;
+    }
+
+    .badge {
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 600;
+      background: rgba(56, 189, 248, 0.16);
+      color: var(--accent);
+      border: 1px solid rgba(56, 189, 248, 0.32);
+    }
+
+    .control-row {
+      margin-bottom: 9px;
+    }
+
+    .control-label {
+      display: flex;
+      justify-content: space-between;
+      color: var(--text-dim);
+      margin-bottom: 4px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .control-label span:last-child {
+      color: var(--text-main);
+      font-weight: 600;
+    }
+
+    input[type="range"] {
+      width: 100%;
+      height: 5px;
+      appearance: none;
+      -webkit-appearance: none;
+      background: rgba(148, 163, 184, 0.22);
+      border-radius: 999px;
+      outline: none;
+    }
+
+    input[type="range"]::-webkit-slider-thumb {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent);
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.7);
+      cursor: pointer;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+    }
+
+    button {
+      flex: 1;
+      padding: 6px 8px;
+      border-radius: 8px;
+      border: 1px solid rgba(148, 163, 184, 0.24);
+      background: rgba(30, 41, 59, 0.75);
+      color: var(--text-main);
+      font-size: 11.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s ease, border-color 0.15s ease, transform 0.1s ease;
+    }
+
+    button:hover {
+      background: rgba(51, 65, 85, 0.9);
+      border-color: rgba(56, 189, 248, 0.5);
+    }
+
+    button:active {
+      transform: scale(0.97);
+    }
+
+    .hint {
+      margin-top: 9px;
+      font-size: 11px;
+      color: rgba(148, 163, 184, 0.75);
+      text-align: center;
+    }
+
+    @media (max-width: 600px) {
+      .hud {
+        width: 210px;
+        padding: 10px 12px;
+        top: 10px;
+        left: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="hud">
+    <div class="hud-header">
+      <span class="hud-title">Spinning Hexagon</span>
+      <span class="badge">10 Balls</span>
+    </div>
+
+    <div class="control-row">
+      <div class="control-label">
+        <span>Spin Speed</span>
+        <span id="val-omega">0.95 rad/s</span>
+      </div>
+      <input id="ctrl-omega" type="range" min="-3.0" max="3.0" step="0.05" value="0.95" />
+    </div>
+
+    <div class="control-row">
+      <div class="control-label">
+        <span>Gravity</span>
+        <span id="val-gravity">680</span>
+      </div>
+      <input id="ctrl-gravity" type="range" min="0" max="1500" step="20" value="680" />
+    </div>
+
+    <div class="control-row">
+      <div class="control-label">
+        <span>Bounciness</span>
+        <span id="val-bounce">0.84</span>
+      </div>
+      <input id="ctrl-bounce" type="range" min="0.40" max="0.98" step="0.02" value="0.84" />
+    </div>
+
+    <div class="btn-row">
+      <button id="btn-kick" type="button">Impulse Kick</button>
+      <button id="btn-reset" type="button">Reset</button>
+    </div>
+
+    <div class="hint">Click anywhere to send a shockwave</div>
+  </div>
+
+  <canvas id="simCanvas"></canvas>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const canvas = document.getElementById("simCanvas");
+      const ctx = canvas.getContext("2d");
+
+      // Physics runs in fixed virtual world units centered at (0, 0)
+      // so resizing the viewport never clips or teleports balls outside the hexagon.
+      const WORLD_SIZE = 720;
+      const HEX_SIDES = 6;
+      const HEX_RADIUS = 265;
+      const HEX_APOTHEM = HEX_RADIUS * Math.cos(Math.PI / HEX_SIDES);
+      const BALL_COUNT = 10;
+      const SUBSTEPS = 8;
+      const SOLVER_ITERATIONS = 2;
+      const TRAIL_LENGTH = 15;
+      const MAX_SPEED = 1650;
+
+      const PALETTE = [
+        { main: "#38bdf8", light: "#bae6fd", dark: "#0369a1" }, // Sky Cyan
+        { main: "#fb7185", light: "#fecdd3", dark: "#be123c" }, // Coral Rose
+        { main: "#fbbf24", light: "#fef08a", dark: "#b45309" }, // Amber Gold
+        { main: "#34d399", light: "#a7f3d0", dark: "#047857" }, // Emerald Mint
+        { main: "#a78bfa", light: "#ddd6fe", dark: "#5b21b6" }, // Violet
+        { main: "#f97316", light: "#fed7aa", dark: "#9a3412" }, // Tangerine
+        { main: "#22d3ee", light: "#cffafe", dark: "#0e7490" }, // Electric Aqua
+        { main: "#f472b6", light: "#fbcfe8", dark: "#9d174d" }, // Hot Pink
+        { main: "#a3e635", light: "#ecfccb", dark: "#3f6212" }, // Neon Lime
+        { main: "#60a5fa", light: "#dbeafe", dark: "#1d4ed8" }  // Royal Blue
+      ];
+
+      const config = {
+        omega: 0.95,        // Hexagon angular velocity (rad/s)
+        gravity: 680,       // Downward acceleration (world units / s^2)
+        restitution: 0.84,  // Bounce coefficient
+        wallFriction: 0.28, // Coulomb friction against spinning walls
+        ballFriction: 0.18, // Ball-to-ball surface friction
+        airDrag: 0.04       // Mild linear damping per second
+      };
+
+      let viewWidth = window.innerWidth;
+      let viewHeight = window.innerHeight;
+      let dpr = Math.min(window.devicePixelRatio || 1, 2);
+      let worldScale = 1;
+
+      let hexAngle = 0;
+      const wallGlow = new Float32Array(HEX_SIDES);
+      const balls = [];
+      const sparks = [];
+      const shockwaves = [];
+
+      class Ball {
+        constructor(index, x, y, vx, vy, radius, colors) {
+          this.id = index + 1;
+          this.x = x;
+          this.y = y;
+          this.vx = vx;
+          this.vy = vy;
+          this.r = radius;
+          this.mass = radius * radius;
+          this.invMass = 1 / this.mass;
+          this.angle = Math.random() * Math.PI * 2;
+          this.spin = (Math.random() - 0.5) * 3;
+          this.colors = colors;
+          this.flash = 0;
+          this.trail = [];
+        }
+
+        recordTrail() {
+          this.trail.push({ x: this.x, y: this.y });
+          if (this.trail.length > TRAIL_LENGTH) {
+            this.trail.shift();
+          }
+        }
+      }
+
+      function spawnSparkBurst(x, y, nx, ny, color, intensity) {
+        const count = Math.min(8, Math.max(2, Math.floor(intensity / 180)));
+        for (let i = 0; i < count; i++) {
+          if (sparks.length > 160) break;
+          const spread = (Math.random() - 0.5) * 1.8;
+          const baseAngle = Math.atan2(ny, nx) + spread;
+          const speed = (60 + Math.random() * 190) * Math.min(1.8, intensity / 300);
+          sparks.push({
+            x,
+            y,
+            vx: Math.cos(baseAngle) * speed,
+            vy: Math.sin(baseAngle) * speed,
+            life: 1,
+            decay: 2.2 + Math.random() * 1.8,
+            size: 1.8 + Math.random() * 2.2,
+            color
+          });
+        }
+      }
+
+      function initBalls() {
+        balls.length = 0;
+        sparks.length = 0;
+        shockwaves.length = 0;
+        wallGlow.fill(0);
+
+        // Radii varied slightly for realistic multi-mass collisions while staying clearly visible
+        const radii = [19, 16, 21, 17, 15, 20, 16, 18, 15, 18];
+
+        // Non-overlapping initial layout (center + 6-ball inner ring + 3-ball outer arc)
+        const placements = [{ x: 0, y: -25 }];
+        for (let i = 0; i < 6; i++) {
+          const a = (i * Math.PI) / 3 + 0.15;
+          placements.push({
+            x: Math.cos(a) * 68,
+            y: -25 + Math.sin(a) * 68
+          });
+        }
+        for (let i = 0; i < 3; i++) {
+          const a = -Math.PI * 0.78 + i * (Math.PI * 0.28);
+          placements.push({
+            x: Math.cos(a) * 132,
+            y: -15 + Math.sin(a) * 132
+          });
+        }
+
+        for (let i = 0; i < BALL_COUNT; i++) {
+          const pos = placements[i];
+          const vx = (Math.random() - 0.5) * 260;
+          const vy = (Math.random() - 0.5) * 180;
+          balls.push(new Ball(i, pos.x, pos.y, vx, vy, radii[i], PALETTE[i]));
+        }
+      }
+
+      function resize() {
+        viewWidth = window.innerWidth;
+        viewHeight = window.innerHeight;
+        dpr = Math.min(window.devicePixelRatio || 1, 2);
+        canvas.width = Math.floor(viewWidth * dpr);
+        canvas.height = Math.floor(viewHeight * dpr);
+        worldScale = Math.min(viewWidth, viewHeight) / WORLD_SIZE;
+      }
+
+      function getHexVertices(angle) {
+        const verts = [];
+        for (let i = 0; i < HEX_SIDES; i++) {
+          const a = angle + (i * Math.PI) / 3;
+          verts.push({
+            x: HEX_RADIUS * Math.cos(a),
+            y: HEX_RADIUS * Math.sin(a)
+          });
+        }
+        return verts;
+      }
+
+      function resolveWallCollisions(allowEffects) {
+        const e = config.restitution;
+        const mu = config.wallFriction;
+        const stepAngle = Math.PI / 3;
+
+        for (let bIdx = 0; bIdx < BALL_COUNT; bIdx++) {
+          const b = balls[bIdx];
+
+          // A regular hexagon centered at (0,0) is the exact intersection of 6 half-spaces:
+          // P . u_i <= HEX_APOTHEM, where u_i is the outward unit normal of edge i.
+          for (let i = 0; i < HEX_SIDES; i++) {
+            const phi = hexAngle + (i + 0.5) * stepAngle;
+            const ux = Math.cos(phi);
+            const uy = Math.sin(phi);
+
+            const signedOutward = b.x * ux + b.y * uy;
+            const penetration = signedOutward + b.r - HEX_APOTHEM;
+
+            if (penetration > 0) {
+              // Inward unit normal n = -u
+              const nx = -ux;
+              const ny = -uy;
+
+              // Project ball back inside the half-space
+              b.x += nx * penetration;
+              b.y += ny * penetration;
+
+              // Contact point on the hexagon wall
+              const cx = b.x + ux * b.r;
+              const cy = b.y + uy * b.r;
+
+              // Rigid-body linear velocity of the spinning hexagon wall at contact point:
+              // v_wall = omega x P_c = (-omega * cy, omega * cx)
+              const wallVx = -config.omega * cy;
+              const wallVy = config.omega * cx;
+
+              // Contact vector from ball center to contact point: r_c = (ux * r, uy * r)
+              const rcx = ux * b.r;
+              const rcy = uy * b.r;
+
+              // Ball surface velocity at contact point: v + spin x r_c
+              const surfVx = b.vx - b.spin * rcy;
+              const surfVy = b.vy + b.spin * rcx;
+
+              // Relative velocity of ball surface wrt wall
+              const relVx = surfVx - wallVx;
+              const relVy = surfVy - wallVy;
+
+              const velAlongNormal = relVx * nx + relVy * ny;
+
+              if (velAlongNormal < 0) {
+                // Smooth low-speed resting threshold to avoid micro-jitter while rolling
+                const effectiveRestitution = Math.abs(velAlongNormal) < 22 ? 0 : e;
+                const jn = -(1 + effectiveRestitution) * b.mass * velAlongNormal;
+
+                // Tangent vector t = (-ny, nx)
+                const tx = -ny;
+                const ty = nx;
+                const velAlongTangent = relVx * tx + relVy * ty;
+
+                // Solid disk moment of inertia I = 0.5 * m * r^2 gives effective tangential factor 1/3
+                const jtNoSlip = (-1 / 3) * b.mass * velAlongTangent;
+                const maxFriction = mu * jn;
+                const jt = Math.max(-maxFriction, Math.min(maxFriction, jtNoSlip));
+
+                const impulseX = jn * nx + jt * tx;
+                const impulseY = jn * ny + jt * ty;
+
+                b.vx += impulseX * b.invMass;
+                b.vy += impulseY * b.invMass;
+                b.spin -= (2 * jt) / (b.mass * b.r);
+
+                const impactSpeed = -velAlongNormal;
+                if (allowEffects && impactSpeed > 95) {
+                  const glowBoost = Math.min(1, impactSpeed / 520);
+                  wallGlow[i] = Math.min(1.25, wallGlow[i] + glowBoost * 0.65);
+                  b.flash = Math.min(1, b.flash + glowBoost * 0.75);
+                  if (impactSpeed > 180) {
+                    spawnSparkBurst(cx, cy, nx, ny, b.colors.main, impactSpeed);
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      function resolveBallCollisions(allowEffects) {
+        const e = Math.min(0.96, config.restitution + 0.04);
+        const mu = config.ballFriction;
+
+        for (let i = 0; i < BALL_COUNT; i++) {
+          const a = balls[i];
+          for (let j = i + 1; j < BALL_COUNT; j++) {
+            const b = balls[j];
+
+            const dx = b.x - a.x;
+            const dy = b.y - a.y;
+            const minDist = a.r + b.r;
+            const distSq = dx * dx + dy * dy;
+
+            if (distSq < minDist * minDist) {
+              const dist = Math.sqrt(distSq);
+              const nx = dist > 1e-6 ? dx / dist : 1;
+              const ny = dist > 1e-6 ? dy / dist : 0;
+              const overlap = minDist - dist;
+
+              const invMassSum = a.invMass + b.invMass;
+              const corrA = overlap * (a.invMass / invMassSum);
+              const corrB = overlap * (b.invMass / invMassSum);
+
+              a.x -= nx * corrA;
+              a.y -= ny * corrA;
+              b.x += nx * corrB;
+              b.y += ny * corrB;
+
+              const rAx = nx * a.r;
+              const rAy = ny * a.r;
+              const rBx = -nx * b.r;
+              const rBy = -ny * b.r;
+
+              const surfAx = a.vx - a.spin * rAy;
+              const surfAy = a.vy + a.spin * rAx;
+              const surfBx = b.vx - b.spin * rBy;
+              const surfBy = b.vy + b.spin * rBx;
+
+              const relVx = surfBx - surfAx;
+              const relVy = surfBy - surfAy;
+
+              const vn = relVx * nx + relVy * ny;
+              if (vn < 0) {
+                const effectiveE = Math.abs(vn) < 18 ? 0 : e;
+                const jn = (-(1 + effectiveE) * vn) / invMassSum;
+
+                const tx = -ny;
+                const ty = nx;
+                const vt = relVx * tx + relVy * ty;
+
+                const jtNoSlip = -vt / (3 * invMassSum);
+                const maxFriction = mu * jn;
+                const jt = Math.max(-maxFriction, Math.min(maxFriction, jtNoSlip));
+
+                const jx = jn * nx + jt * tx;
+                const jy = jn * ny + jt * ty;
+
+                a.vx -= jx * a.invMass;
+                a.vy -= jy * a.invMass;
+                b.vx += jx * b.invMass;
+                b.vy += jy * b.invMass;
+
+                a.spin -= (2 * jt) / (a.mass * a.r);
+                b.spin -= (2 * jt) / (b.mass * b.r);
+
+                const impactSpeed = -vn;
+                if (allowEffects && impactSpeed > 120) {
+                  const strength = Math.min(1, impactSpeed / 500);
+                  a.flash = Math.min(1, a.flash + strength * 0.6);
+                  b.flash = Math.min(1, b.flash + strength * 0.6);
+                  if (impactSpeed > 220) {
+                    const mx = a.x + nx * a.r;
+                    const my = a.y + ny * a.r;
+                    spawnSparkBurst(mx, my, -ty, tx, "#f8fafc", impactSpeed * 0.75);
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      function stepPhysics(dt) {
+        const subDt = dt / SUBSTEPS;
+        const dragFactor = Math.max(0, 1 - config.airDrag * subDt);
+
+        for (let s = 0; s < SUBSTEPS; s++) {
+          hexAngle += config.omega * subDt;
+
+          for (let i = 0; i < BALL_COUNT; i++) {
+            const b = balls[i];
+            b.vy += config.gravity * subDt;
+            b.vx *= dragFactor;
+            b.vy *= dragFactor;
+
+            const speedSq = b.vx * b.vx + b.vy * b.vy;
+            if (speedSq > MAX_SPEED * MAX_SPEED) {
+              const scale = MAX_SPEED / Math.sqrt(speedSq);
+              b.vx *= scale;
+              b.vy *= scale;
+            }
+
+            b.x += b.vx * subDt;
+            b.y += b.vy * subDt;
+            b.angle += b.spin * subDt;
+          }
+
+          for (let iter = 0; iter < SOLVER_ITERATIONS; iter++) {
+            const allowEffects = iter === 0;
+            resolveBallCollisions(allowEffects);
+            resolveWallCollisions(allowEffects);
+          }
+        }
+
+        // Record trails & update visual decay once per rendered frame
+        for (let i = 0; i < BALL_COUNT; i++) {
+          balls[i].recordTrail();
+          balls[i].flash = Math.max(0, balls[i].flash - dt * 3.5);
+        }
+
+        for (let i = 0; i < HEX_SIDES; i++) {
+          wallGlow[i] = Math.max(0, wallGlow[i] - dt * 2.6);
+        }
+
+        for (let i = sparks.length - 1; i >= 0; i--) {
+          const sp = sparks[i];
+          sp.x += sp.vx * dt;
+          sp.y += sp.vy * dt;
+          sp.vy += config.gravity * 0.35 * dt;
+          sp.life -= sp.decay * dt;
+          if (sp.life <= 0) {
+            sparks.splice(i, 1);
+          }
+        }
+
+        for (let i = shockwaves.length - 1; i >= 0; i--) {
+          const sw = shockwaves[i];
+          sw.r += 480 * dt;
+          sw.life -= 2.2 * dt;
+          if (sw.life <= 0) {
+            shockwaves.splice(i, 1);
+          }
+        }
+      }
+
+      function drawBackgroundAccents() {
+        // Subtle rotating ambient ring behind hexagon
+        ctx.save();
+        ctx.strokeStyle = "rgba(56, 189, 248, 0.06)";
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([8, 14]);
+        ctx.beginPath();
+        ctx.arc(0, 0, HEX_RADIUS * 1.12, hexAngle * 0.5, hexAngle * 0.5 + Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+
+        // Subtle center hub crosshairs rotating with hexagon
+        ctx.save();
+        ctx.rotate(hexAngle);
+        ctx.strokeStyle = "rgba(148, 163, 184, 0.08)";
+        ctx.lineWidth = 1;
+        for (let i = 0; i < 3; i++) {
+          const a = (i * Math.PI) / 3;
+          ctx.beginPath();
+          ctx.moveTo(Math.cos(a) * -HEX_RADIUS, Math.sin(a) * -HEX_RADIUS);
+          ctx.lineTo(Math.cos(a) * HEX_RADIUS, Math.sin(a) * HEX_RADIUS);
+          ctx.stroke();
+        }
+        ctx.fillStyle = "rgba(56, 189, 248, 0.18)";
+        ctx.beginPath();
+        ctx.arc(0, 0, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      function drawHexagon(verts) {
+        // Interior subtle glass fill
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(verts[0].x, verts[0].y);
+        for (let i = 1; i < HEX_SIDES; i++) {
+          ctx.lineTo(verts[i].x, verts[i].y);
+        }
+        ctx.closePath();
+
+        const hexGrad = ctx.createRadialGradient(0, 0, 20, 0, 0, HEX_RADIUS);
+        hexGrad.addColorStop(0, "rgba(15, 23, 42, 0.25)");
+        hexGrad.addColorStop(1, "rgba(30, 58, 138, 0.16)");
+        ctx.fillStyle = hexGrad;
+        ctx.fill();
+
+        // Outer ambient rim
+        ctx.lineJoin = "round";
+        ctx.lineCap = "round";
+        ctx.lineWidth = 9;
+        ctx.strokeStyle = "rgba(56, 189, 248, 0.12)";
+        ctx.stroke();
+
+        // Individual walls with dynamic collision glow
+        for (let i = 0; i < HEX_SIDES; i++) {
+          const v1 = verts[i];
+          const v2 = verts[(i + 1) % HEX_SIDES];
+          const glow = wallGlow[i];
+
+          ctx.save();
+          ctx.beginPath();
+          ctx.moveTo(v1.x, v1.y);
+          ctx.lineTo(v2.x, v2.y);
+
+          if (glow > 0.01) {
+            ctx.shadowColor = "rgba(56, 189, 248, 0.95)";
+            ctx.shadowBlur = 14 + glow * 22;
+          }
+
+          const alpha = Math.min(1, 0.68 + glow * 0.32);
+          ctx.lineWidth = 4.2 + glow * 2.6;
+          ctx.strokeStyle = glow > 0.25
+            ? `rgba(186, 230, 253, ${alpha})`
+            : `rgba(56, 189, 248, ${alpha})`;
+          ctx.stroke();
+          ctx.restore();
+        }
+
+        // Glowing vertex nodes
+        for (let i = 0; i < HEX_SIDES; i++) {
+          const v = verts[i];
+          ctx.beginPath();
+          ctx.arc(v.x, v.y, 4.5, 0, Math.PI * 2);
+          ctx.fillStyle = "#e0f2fe";
+          ctx.fill();
+        }
+
+        ctx.restore();
+      }
+
+      function drawTrails() {
+        ctx.save();
+        ctx.lineCap = "round";
+        for (let i = 0; i < BALL_COUNT; i++) {
+          const b = balls[i];
+          const len = b.trail.length;
+          if (len < 2) continue;
+
+          for (let t = 1; t < len; t++) {
+            const p0 = b.trail[t - 1];
+            const p1 = b.trail[t];
+            const ratio = t / len;
+            ctx.beginPath();
+            ctx.moveTo(p0.x, p0.y);
+            ctx.lineTo(p1.x, p1.y);
+            ctx.strokeStyle = b.colors.main;
+            ctx.globalAlpha = ratio * 0.26;
+            ctx.lineWidth = b.r * 1.15 * ratio;
+            ctx.stroke();
+          }
+        }
+        ctx.restore();
+      }
+
+      function drawBalls() {
+        for (let i = 0; i < BALL_COUNT; i++) {
+          const b = balls[i];
+
+          ctx.save();
+          ctx.translate(b.x, b.y);
+
+          // Soft outer glow on collision flash
+          if (b.flash > 0.02) {
+            ctx.shadowColor = b.colors.main;
+            ctx.shadowBlur = 10 + b.flash * 16;
+          }
+
+          // Spherical radial shading
+          const grad = ctx.createRadialGradient(
+            -b.r * 0.32,
+            -b.r * 0.32,
+            b.r * 0.12,
+            0,
+            0,
+            b.r
+          );
+          grad.addColorStop(0, b.colors.light);
+          grad.addColorStop(0.55, b.colors.main);
+          grad.addColorStop(1, b.colors.dark);
+
+          ctx.beginPath();
+          ctx.arc(0, 0, b.r, 0, Math.PI * 2);
+          ctx.fillStyle = grad;
+          ctx.fill();
+
+          // Rotating meridian band to visualize angular spin clearly
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(0, 0, b.r, 0, Math.PI * 2);
+          ctx.clip();
+
+          ctx.rotate(b.angle);
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.32)";
+          ctx.lineWidth = 2.2;
+          ctx.beginPath();
+          ctx.moveTo(-b.r, 0);
+          ctx.lineTo(b.r, 0);
+          ctx.stroke();
+
+          ctx.fillStyle = "rgba(255, 255, 255, 0.7)";
+          ctx.beginPath();
+          ctx.arc(b.r * 0.62, 0, 2.1, 0, Math.PI * 2);
+          ctx.arc(-b.r * 0.62, 0, 2.1, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+
+          // Crisp rim
+          ctx.strokeStyle = "rgba(255, 255, 255, 0.35)";
+          ctx.lineWidth = 1.1;
+          ctx.beginPath();
+          ctx.arc(0, 0, b.r - 0.5, 0, Math.PI * 2);
+          ctx.stroke();
+
+          // Subtle number badge at center
+          ctx.fillStyle = "rgba(15, 23, 42, 0.55)";
+          ctx.beginPath();
+          ctx.arc(0, 0, b.r * 0.44, 0, Math.PI * 2);
+          ctx.fill();
+
+          ctx.fillStyle = "#f8fafc";
+          ctx.font = `700 ${Math.round(b.r * 0.56)}px -apple-system, BlinkMacSystemFont, sans-serif`;
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(String(b.id), 0, 0.5);
+
+          ctx.restore();
+        }
+      }
+
+      function drawEffects() {
+        // Sparks
+        ctx.save();
+        for (let i = 0; i < sparks.length; i++) {
+          const sp = sparks[i];
+          ctx.globalAlpha = Math.max(0, sp.life);
+          ctx.fillStyle = sp.color;
+          ctx.beginPath();
+          ctx.arc(sp.x, sp.y, sp.size * sp.life, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+
+        // Click shockwaves
+        ctx.save();
+        for (let i = 0; i < shockwaves.length; i++) {
+          const sw = shockwaves[i];
+          ctx.strokeStyle = `rgba(56, 189, 248, ${Math.max(0, sw.life * 0.55)})`;
+          ctx.lineWidth = 2.5;
+          ctx.beginPath();
+          ctx.arc(sw.x, sw.y, sw.r, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function render() {
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Transform from virtual world (0,0 at center) to device pixels
+        ctx.setTransform(
+          worldScale * dpr,
+          0,
+          0,
+          worldScale * dpr,
+          (viewWidth * 0.5) * dpr,
+          (viewHeight * 0.5) * dpr
+        );
+
+        const verts = getHexVertices(hexAngle);
+        drawBackgroundAccents();
+        drawTrails();
+        drawHexagon(verts);
+        drawBalls();
+        drawEffects();
+      }
+
+      // UI Wiring
+      const ctrlOmega = document.getElementById("ctrl-omega");
+      const valOmega = document.getElementById("val-omega");
+      const ctrlGravity = document.getElementById("ctrl-gravity");
+      const valGravity = document.getElementById("val-gravity");
+      const ctrlBounce = document.getElementById("ctrl-bounce");
+      const valBounce = document.getElementById("val-bounce");
+      const btnKick = document.getElementById("btn-kick");
+      const btnReset = document.getElementById("btn-reset");
+
+      ctrlOmega.addEventListener("input", () => {
+        config.omega = parseFloat(ctrlOmega.value);
+        valOmega.textContent = `${config.omega.toFixed(2)} rad/s`;
+      });
+
+      ctrlGravity.addEventListener("input", () => {
+        config.gravity = parseFloat(ctrlGravity.value);
+        valGravity.textContent = `${Math.round(config.gravity)}`;
+      });
+
+      ctrlBounce.addEventListener("input", () => {
+        config.restitution = parseFloat(ctrlBounce.value);
+        valBounce.textContent = config.restitution.toFixed(2);
+      });
+
+      btnKick.addEventListener("click", () => {
+        shockwaves.push({ x: 0, y: 0, r: 12, life: 1 });
+        for (let i = 0; i < BALL_COUNT; i++) {
+          const b = balls[i];
+          const angle = Math.random() * Math.PI * 2;
+          const boost = 360 + Math.random() * 280;
+          b.vx += Math.cos(angle) * boost;
+          b.vy += Math.sin(angle) * boost - 180;
+          b.spin += (Math.random() - 0.5) * 10;
+        }
+      });
+
+      btnReset.addEventListener("click", () => {
+        hexAngle = 0;
+        initBalls();
+      });
+
+      canvas.addEventListener("pointerdown", (ev) => {
+        const rect = canvas.getBoundingClientRect();
+        const wx = (ev.clientX - rect.left - viewWidth * 0.5) / worldScale;
+        const wy = (ev.clientY - rect.top - viewHeight * 0.5) / worldScale;
+
+        shockwaves.push({ x: wx, y: wy, r: 8, life: 1 });
+
+        for (let i = 0; i < BALL_COUNT; i++) {
+          const b = balls[i];
+          const dx = b.x - wx;
+          const dy = b.y - wy;
+          const dist = Math.hypot(dx, dy) + 35;
+          const strength = Math.min(620, 42000 / dist);
+          const angle = Math.atan2(dy, dx);
+          b.vx += Math.cos(angle) * strength;
+          b.vy += Math.sin(angle) * strength;
+        }
+      });
+
+      window.addEventListener("resize", resize);
+
+      // Start simulation
+      resize();
+      initBalls();
+
+      let lastTime = performance.now();
+      function animate(now) {
+        const rawDt = (now - lastTime) / 1000;
+        lastTime = now;
+        // Clamp dt to maintain stability across tab switches
+        const dt = Math.min(Math.max(rawDt, 0.001), 0.033);
+
+        stepPhysics(dt);
+        render();
+        requestAnimationFrame(animate);
+      }
+
+      requestAnimationFrame(animate);
+    })();
+  </script>
+</body>
+</html>

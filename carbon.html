@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gemini 4 Carbon의 도전 — 원샷 코딩 5라운드 4자 재대결</title>
+<meta name="description" content="어제의 프롬프트 5개를 Gemini 4 Carbon에게 똑같이 시키고, 네 모델 결과를 처음부터 다시 블라인드 심사한 기록.">
+<style>
+:root{--bg:#0E0D0C;--paper:#171513;--ink:#F2EEE6;--sub:#CFC8BC;--muted:#8E877B;--line:#2B2723;--fable:#E0774F;--opus:#7FA3FF;--gpt:#4FD1A5;--gold:#E8C36A;--carbon:#C9CED6}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.65 -apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif}
+a{color:var(--gold)}
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px}
+header{padding:72px 0 36px;border-bottom:1px solid var(--line)}
+.eyebrow{font:600 12px/1 ui-monospace,Menlo,monospace;letter-spacing:.18em;color:var(--muted);text-transform:uppercase}
+h1{font:700 clamp(28px,5vw,48px)/1.2 Georgia,"Noto Serif KR",serif;margin:14px 0 12px}
+h2{font:700 26px/1.3 Georgia,"Noto Serif KR",serif;margin:0 0 6px}
+h3{font:600 13px/1 ui-monospace,Menlo,monospace;letter-spacing:.14em;color:var(--muted);text-transform:uppercase;margin:28px 0 10px}
+p.lead{color:var(--sub);max-width:760px;margin:0}
+section{padding:44px 0;border-bottom:1px solid var(--line)}
+.grid3{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+@media(max-width:1000px){.grid3{grid-template-columns:repeat(2,1fr)}}@media(max-width:560px){.grid3{grid-template-columns:1fr}}
+.card{background:var(--paper);border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.card .top{height:3px}
+.card .body{padding:14px 16px}
+.card video,.card img{display:block;width:100%;aspect-ratio:16/10;object-fit:cover;background:#000}
+.card img{object-fit:contain;background:#fff}
+.name{font-weight:700}
+.meta{color:var(--muted);font-size:13px}
+.btn{display:inline-block;margin-top:8px;font-size:13px;border:1px solid var(--line);border-radius:6px;padding:4px 10px;text-decoration:none;color:var(--ink)}
+.btn:hover{border-color:var(--gold)}
+pre{background:#0A0908;border:1px solid var(--line);border-radius:8px;padding:16px;white-space:pre-wrap;word-break:break-word;font:14px/1.6 ui-monospace,Menlo,monospace;color:var(--sub);margin:0}
+table{width:100%;border-collapse:collapse;font-size:14px}
+th,td{padding:9px 10px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:12px;letter-spacing:.06em}
+td.n{font:600 15px ui-monospace,Menlo,monospace;text-align:right}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px}
+.bar{height:10px;border-radius:5px}
+.totals{display:grid;gap:12px;margin-top:18px}
+.totals .row{display:grid;grid-template-columns:150px 1fr 110px;gap:14px;align-items:center}
+.totals .v{font:700 20px ui-monospace,Menlo,monospace;text-align:right}
+details{margin-top:12px}
+summary{cursor:pointer;color:var(--sub)}
+.note{color:var(--muted);font-size:14px}
+ul{color:var(--sub);padding-left:20px}
+footer{padding:36px 0 80px;color:var(--muted);font-size:13px}
+img.sheet{width:100%;border:1px solid var(--line);border-radius:8px;margin-top:10px}
+.watch{display:inline-flex;align-items:center;gap:14px;margin-top:24px;padding:14px 20px;background:var(--fable);color:#14100d;border-radius:8px;text-decoration:none}
+.watch:hover{filter:brightness(1.08)}
+.watch .play{font-size:22px}
+.watch b{display:block;font-size:17px}
+.watch small{display:block;font-size:13px;opacity:.8}
+.fix{border-left:3px solid var(--gold);padding:10px 14px;background:var(--paper);border-radius:0 8px 8px 0;margin-top:14px}
+.scroll{overflow-x:auto}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="eyebrow">One-shot coding · 5 rounds · rematch · 2026-11-11</div>
+  <h1>Gemini 4 Carbon의 도전<br>네 모델 재대결</h1>
+  <p class="lead"><a href="./">어제의 세 모델 대결</a>에 쓴 프롬프트 5개를 Gemini 4 Carbon에게 <b>똑같이 한 번씩만</b> 시켰습니다. 그리고 네 결과물을 한 장에 놓고, 네 모델에게 처음부터 다시 블라인드 심사를 맡겼습니다. Fable 5.2 · Opus 5.5 · GPT-6.1 Sol의 결과물은 어제 것 그대로입니다.</p>
+</header>
+
+<section>
+  <h2>합계</h2>
+  <p class="note">네 모델이 이름을 가린 결과물(A·B·C·D) 캡처를 보고 서로 순위를 매겼습니다. 심사 1명당 1위 4점 · 2위 3점 · 3위 2점 · 4위 1점, 라운드당 최대 16점, 합계 최대 80점.</p>
+  <div class="totals" id="totals"></div>
+  <h3>라운드별 점수</h3>
+  <div class="scroll"><table id="rounds"></table></div>
+  <h3>만드는 데 걸린 시간 · 비용</h3>
+  <div class="scroll"><table id="cost"></table></div>
+  <p class="note" id="costnote"></p>
+</section>
+
+<section>
+  <h2>규칙과 한계</h2>
+  <ul>
+    <li>Carbon: <code>gemini-4-carbon</code>, Google Antigravity CLI(agy 1.5.5), Gemini API 키 방식. 모델 목록에 아직 없어 설정 파일에 사용자 지정 모델로 등록해 호출했습니다.</li>
+    <li>프롬프트와 꼬리말은 어제와 글자 하나 다르지 않습니다. 과제마다 1회 실행, 수정 요청 없음.</li>
+    <li><b>실행 조건이 모델마다 다릅니다.</b> Claude 두 모델은 파일 읽기·쓰기만 허용, Codex(GPT)는 격리된 작업 폴더 안에서 명령 실행 가능. Carbon은 SVG 과제만 "명령 실행 금지" 조건에서 나온 결과이고, 나머지 4개는 그 조건에서 <span id="failed"></span> 만에 파일 없이 끝나(Carbon이 요청한 명령 실행이 거절되자 도구가 작업을 종료) 격리 폴더 안 명령 실행을 허용하고 다시 돌린 결과입니다. 빈손으로 끝난 실행은 과제 수행으로 세지 않았습니다.</li>
+    <li>Carbon의 비용은 agy가 보고한 토큰 수에 공식 단가를 곱한 <b>추정값</b>입니다(입력 토큰에 캐시된 토큰이 포함되지 않는다고 가정). Claude의 비용은 Claude Code가 보고한 금액입니다. Codex는 금액을 알려 주지 않습니다.</li>
+    <li>어제의 3자 심사 점수와 오늘의 4자 심사 점수는 서로 다른 심사입니다. 같은 작품도 다시 심사하면 순위가 바뀌었습니다(어제 GPT 29 · Opus 27 → 오늘 Opus 47 · GPT 35).</li>
+    <li>심사는 캡처 화면만 보고 했습니다. 캡처 방식에 따라 결과가 크게 흔들렸고, 그 정정 두 건을 해당 라운드에 처음 받은 표와 함께 적었습니다.</li>
+    <li>심사위원이 곧 선수입니다. 자기 작품을 1위로 뽑은 표는 <span id="self"></span>였습니다.</li>
+    <li>Carbon의 쇼릴 끝 장면에는 "ANTIGRAVITY" 글자가 나옵니다. 블라인드 심사에서 출신이 드러날 수 있는 요소입니다.</li>
+    <li>이 페이지와 영상 제작 과정에는 Claude Fable 5.2가 쓰였습니다. 선수 중 하나가 진행을 도왔다는 점을 감안해 직접 열어 보고 판단해 주세요.</li>
+  </ul>
+</section>
+
+<div id="tasks"></div>
+
+<footer>
+  어제의 세 모델 대결: <a href="./">처음 페이지</a> · 영상 <a href="https://youtu.be/vfKM1ovff6M" target="_blank" rel="noopener">youtu.be/vfKM1ovff6M</a><br>
+  결과물 HTML·SVG는 모델이 만든 그대로입니다. 스크립트는 <a href="harness/">harness/</a> 폴더에, 전체 수치는 <a href="carbon.json">carbon.json</a>에 있습니다.
+</footer>
+</div>
+<script>
+const NAME={fable:"Fable 5.2",opus:"Opus 5.5",gpt:"GPT-6.1 Sol",carbon:"Gemini 4 Carbon"}, COL={fable:"var(--fable)",opus:"var(--opus)",gpt:"var(--gpt)",carbon:"var(--carbon)"}, M=["fable","opus","gpt","carbon"];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const mmss=s=>Math.floor(s/60)+"분 "+String(s%60).padStart(2,"0")+"초";
+const dot=m=>`<span class="dot" style="background:${COL[m]}"></span>`;
+const voteTable=vs=>`<div class="scroll"><table style="margin-top:14px"><tr><th>심사</th><th>순위</th><th>심사평 (모델이 쓴 그대로)</th></tr>${vs.map(v=>`<tr><td>${dot(v.judge)}${NAME[v.judge]}</td><td>${v.order.map(m=>NAME[m]).join(" › ")}</td><td>${M.map(m=>`<div><b>${NAME[m]}</b> — ${esc(v.reasons[m])}</div>`).join("")}</td></tr>`).join("")}</table></div>`;
+fetch("carbon.json").then(r=>r.json()).then(d=>{
+  const S=[...M].sort((a,b)=>d.total[b]-d.total[a]);
+  document.getElementById("totals").innerHTML=S.map(m=>`<div class="row"><div class="name">${dot(m)}${NAME[m]}</div><div><div class="bar" style="width:${d.total[m]/80*100}%;background:${COL[m]}"></div></div><div class="v">${d.total[m]}<span class="meta"> / 80</span></div></div>`).join("")+`<p class="note">자기 표를 뺀 점수(최대 60): ${S.map(m=>NAME[m]+" "+d.total_excluding_self[m]).join(" · ")}</p>`;
+  document.getElementById("rounds").innerHTML=`<tr><th>라운드</th>${M.map(m=>`<th>${dot(m)}${NAME[m]}</th>`).join("")}</tr>`+d.tasks.map((t,i)=>`<tr><td><a href="#${t.id}">R${i+1} ${esc(t.name)}</a></td>${M.map(m=>`<td class="n">${t.points[m]}</td>`).join("")}</tr>`).join("")+`<tr><td><b>합계</b></td>${M.map(m=>`<td class="n">${d.total[m]}</td>`).join("")}</tr><tr><td>어제 3자 심사 (45점 만점)</td>${M.map(m=>`<td class="n">${d.total_3way[m]??"—"}</td>`).join("")}</tr>`;
+  const cost={fable:"$"+d.cost_usd.fable.toFixed(2),opus:"$"+d.cost_usd.opus.toFixed(2),gpt:"—",carbon:"약 $"+d.cost_usd.carbon_est.toFixed(2)};
+  document.getElementById("cost").innerHTML=`<tr><th></th>${M.map(m=>`<th>${dot(m)}${NAME[m]}</th>`).join("")}</tr><tr><td>5과제 합계 시간</td>${M.map(m=>`<td class="n">${mmss(d.seconds[m])}</td>`).join("")}</tr><tr><td>API 환산 비용</td>${M.map(m=>`<td class="n">${cost[m]}</td>`).join("")}</tr>`;
+  const p=d.carbon_price_per_mtok;
+  document.getElementById("costnote").innerHTML=`Carbon 단가(100만 토큰): 입력 $${p.in} · 출력 $${p.out} · 캐시 $${p.cache} — ${p.until}까지. 2026-12-01부터 입력 $${p.from_2026_12_01.in} · 출력 $${p.from_2026_12_01.out}로 오르며, 같은 토큰 수라면 약 2배가 됩니다. 무료 등급에서는 쓸 수 없습니다. 출처: <a href="${p.source}" target="_blank" rel="noopener">Gemini API 가격표</a> (2026-11-11 확인).`;
+  document.getElementById("failed").textContent=Object.values(d.carbon_first_attempt_empty_runs_seconds).sort((a,b)=>a-b).join("초 · ")+"초";
+  document.getElementById("self").textContent=`${d.ballots}표 중 ${d.self_first_votes}표`;
+  document.getElementById("tasks").innerHTML=d.tasks.map((t,i)=>`<section id="${t.id}">
+    <div class="eyebrow">Round ${i+1}</div><h2>${esc(t.name)}</h2>
+    <p class="note">출처: <a href="${t.url}" target="_blank" rel="noopener">${esc(t.source)}</a></p>
+    <h3>프롬프트 원문</h3><pre>${esc(t.prompt)}</pre>
+    <p class="note">공통 꼬리말: ${esc(t.suffix)}</p>
+    <h3>결과물</h3>
+    <div class="grid3">${M.map(m=>{const r=t.results[m];const c=r.cost_usd!=null?" · $"+r.cost_usd.toFixed(2):r.cost_usd_est!=null?" · 약 $"+r.cost_usd_est.toFixed(2):"";return `<div class="card"><div class="top" style="background:${COL[m]}"></div>${r.video?`<video src="${r.video}#t=4" muted loop playsinline controls preload="metadata"></video>`:`<img src="${r.image}" alt="${NAME[m]} 결과">`}<div class="body"><div class="name">${NAME[m]}</div><div class="meta">${d.models[m]}</div><div class="meta">생성 ${mmss(r.seconds)} · ${(r.bytes/1024).toFixed(0)}KB${c} · 심사 ${t.points[m]}점</div><a class="btn" href="${r.file}" target="_blank" rel="noopener">직접 열어 보기 →</a></div></div>`}).join("")}</div>
+    <details><summary>블라인드 심사 기록 보기</summary>
+      <p class="note">심사위원이 본 화면 (${["A","B","C","D"].map(l=>l+"="+NAME[t.mapping[l]]).join(", ")} — 심사 때는 가려져 있었습니다)</p>
+      <img class="sheet" src="${t.sheet}" loading="lazy" alt="심사용 캡처">
+      ${voteTable(t.votes)}
+    </details>
+    ${t.correction?`<div class="fix"><p class="note" style="margin:0">${esc(t.correction.note)}</p>${t.id==="game"?`<p class="note" style="margin:6px 0 0"><a href="rec/game-carbon-v1-black-start.mp4">까맣게 찍힌 첫 녹화 보기</a></p>`:""}
+      <details><summary>정정 전 처음 받은 표 (점수: ${M.map(m=>NAME[m]+" "+t.correction.points[m]).join(" · ")})</summary><img class="sheet" src="${t.correction.sheet}" loading="lazy" alt="정정 전 심사용 캡처">${voteTable(t.correction.votes)}</details></div>`:""}
+  </section>`).join("");
+});
+</script>
+</body>
+</html>
