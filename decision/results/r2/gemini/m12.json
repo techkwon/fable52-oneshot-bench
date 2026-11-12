@@ -1,0 +1,60 @@
+{
+ "status": 200,
+ "latency": 0.5670258339960128,
+ "response": {
+  "answers": {
+   "category": {
+    "confidence": 0.9526812363248278,
+    "choice": "teacher",
+    "probabilities": {
+     "other": 0.02478063987398434,
+     "academic": 0.00042624436188593956,
+     "admin": 0.0006193390504147668,
+     "safety": 0.000433270651417516,
+     "teacher": 0.9526812363248278,
+     "praise": 0.0002538076879558133,
+     "violence": 0.01050429712586793,
+     "life": 0.010301164923645847
+    },
+    "type": "choice"
+   },
+   "urgency": {
+    "confidence": 0.9313929185203996,
+    "score": 2.9251878281515378,
+    "probabilities": {
+     "3": 0.9313929185203996,
+     "0": 0.0011352662111685492,
+     "1": 0.003934557946524638,
+     "2": 0.06353725732190715
+    },
+    "legend": {
+     "3": "긴급: 즉시 관리자 보고·안전 조치",
+     "1": "보통: 이번 주 안에 처리",
+     "2": "높음: 오늘 안에 연락 필요",
+     "0": "낮음: 며칠 안에 답하면 됨"
+    },
+    "type": "score"
+   },
+   "infringement": {
+    "confidence": 0.9818690597410332,
+    "noul": 0.9818690597410332,
+    "type": "noul"
+   }
+  },
+  "usage": {
+   "total_tokens": 469,
+   "total_input_tokens": 469,
+   "input_tokens_by_modality": [
+    {
+     "modality": "text",
+     "tokens": 469
+    }
+   ],
+   "total_output_tokens": 0
+  }
+ },
+ "attempts": 1,
+ "id": "m12",
+ "suite": "minwon",
+ "model": "gemini"
+}

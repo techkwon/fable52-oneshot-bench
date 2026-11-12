@@ -1,0 +1,53 @@
+{
+ "status": 200,
+ "latency": 0.18156666700087953,
+ "response": {
+  "model": "jev-1.14.0",
+  "answers": {
+   "type": {
+    "type": "choice",
+    "choice": "sexual",
+    "confidence": 1.0,
+    "probabilities": {
+     "physical": 0.0,
+     "verbal": 0.0,
+     "extortion": 0.0,
+     "coercion": 0.0,
+     "exclusion": 0.0,
+     "sexual": 1.0,
+     "cyber": 0.0,
+     "none": 0.0
+    }
+   },
+   "self_resolve": {
+    "type": "noul",
+    "noul": 0.46
+   },
+   "severity": {
+    "type": "score",
+    "score": 2.26,
+    "confidence": 0.27,
+    "legend": {
+     "0": "경미: 일회성, 피해 작음",
+     "1": "보통: 피해가 있으나 회복 가능",
+     "2": "심각: 지속적이거나 피해가 큼",
+     "3": "매우 심각: 생명·신체 위협, 성폭력, 보복"
+    },
+    "probabilities": {
+     "0": 0.01,
+     "1": 0.17,
+     "2": 0.36,
+     "3": 0.46
+    }
+   }
+  },
+  "usage": {
+   "input_tokens": 925,
+   "output_tokens": 113
+  }
+ },
+ "attempts": 1,
+ "id": "h07",
+ "suite": "hakpok",
+ "model": "jev"
+}

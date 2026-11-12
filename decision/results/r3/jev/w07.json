@@ -1,0 +1,21 @@
+{
+ "status": 200,
+ "latency": 0.18051558300066972,
+ "response": {
+  "model": "jev-1.14.0",
+  "answers": {
+   "spoiler": {
+    "type": "noul",
+    "noul": 0.93
+   }
+  },
+  "usage": {
+   "input_tokens": 289,
+   "output_tokens": 21
+  }
+ },
+ "attempts": 1,
+ "id": "w07",
+ "suite": "web",
+ "model": "jev"
+}

@@ -1,0 +1,29 @@
+{
+ "status": 200,
+ "latency": 0.18045333299960475,
+ "response": {
+  "model": "jev-1.14.0",
+  "answers": {
+   "action": {
+    "type": "choice",
+    "choice": "strike",
+    "confidence": 0.26,
+    "probabilities": {
+     "escalate": 0.3,
+     "strike": 0.41,
+     "remove": 0.24,
+     "warn": 0.04,
+     "allow": 0.01
+    }
+   }
+  },
+  "usage": {
+   "input_tokens": 380,
+   "output_tokens": 54
+  }
+ },
+ "attempts": 1,
+ "id": "w12_rev",
+ "suite": "order",
+ "model": "jev"
+}

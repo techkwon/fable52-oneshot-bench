@@ -1,0 +1,33 @@
+{
+ "status": 200,
+ "latency": 0.46761987500212854,
+ "response": {
+  "answers": {
+   "dept": {
+    "confidence": 0.9853026657512728,
+    "choice": "billing",
+    "probabilities": {
+     "account": 0.011348739229143397,
+     "technical": 0.003348595019583916,
+     "billing": 0.9853026657512728
+    },
+    "type": "choice"
+   }
+  },
+  "usage": {
+   "total_tokens": 129,
+   "total_input_tokens": 129,
+   "input_tokens_by_modality": [
+    {
+     "modality": "text",
+     "tokens": 129
+    }
+   ],
+   "total_output_tokens": 0
+  }
+ },
+ "attempts": 1,
+ "id": "w01",
+ "suite": "web",
+ "model": "gemini"
+}

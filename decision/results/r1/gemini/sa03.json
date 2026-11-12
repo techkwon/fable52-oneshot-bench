@@ -1,0 +1,28 @@
+{
+ "status": 200,
+ "latency": 0.5324067080000532,
+ "response": {
+  "answers": {
+   "correct": {
+    "confidence": 0.9766675644732901,
+    "noul": 0.9766675644732901,
+    "type": "noul"
+   }
+  },
+  "usage": {
+   "total_tokens": 199,
+   "total_input_tokens": 199,
+   "input_tokens_by_modality": [
+    {
+     "modality": "text",
+     "tokens": 199
+    }
+   ],
+   "total_output_tokens": 0
+  }
+ },
+ "attempts": 1,
+ "id": "sa03",
+ "suite": "exam_short",
+ "model": "gemini"
+}

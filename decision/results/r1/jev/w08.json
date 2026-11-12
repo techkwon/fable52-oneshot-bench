@@ -1,0 +1,29 @@
+{
+ "status": 200,
+ "latency": 0.17976104199624388,
+ "response": {
+  "model": "jev-1.14.0",
+  "answers": {
+   "jailbreak": {
+    "type": "noul",
+    "noul": 0.02
+   },
+   "harmful_request": {
+    "type": "noul",
+    "noul": 0.02
+   },
+   "medical_advice": {
+    "type": "noul",
+    "noul": 0.09
+   }
+  },
+  "usage": {
+   "input_tokens": 344,
+   "output_tokens": 59
+  }
+ },
+ "attempts": 1,
+ "id": "w08",
+ "suite": "web",
+ "model": "jev"
+}

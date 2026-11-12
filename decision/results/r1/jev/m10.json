@@ -1,0 +1,53 @@
+{
+ "status": 200,
+ "latency": 0.18477149999671383,
+ "response": {
+  "model": "jev-1.14.0",
+  "answers": {
+   "category": {
+    "type": "choice",
+    "choice": "life",
+    "confidence": 1.0,
+    "probabilities": {
+     "academic": 0.0,
+     "life": 1.0,
+     "violence": 0.0,
+     "safety": 0.0,
+     "admin": 0.0,
+     "teacher": 0.0,
+     "praise": 0.0,
+     "other": 0.0
+    }
+   },
+   "urgency": {
+    "type": "score",
+    "score": 1.33,
+    "confidence": 0.44,
+    "legend": {
+     "0": "낮음: 며칠 안에 답하면 됨",
+     "1": "보통: 이번 주 안에 처리",
+     "2": "높음: 오늘 안에 연락 필요",
+     "3": "긴급: 즉시 관리자 보고·안전 조치"
+    },
+    "probabilities": {
+     "0": 0.12,
+     "1": 0.44,
+     "2": 0.44,
+     "3": 0.0
+    }
+   },
+   "infringement": {
+    "type": "noul",
+    "noul": 0.02
+   }
+  },
+  "usage": {
+   "input_tokens": 745,
+   "output_tokens": 111
+  }
+ },
+ "attempts": 1,
+ "id": "m10",
+ "suite": "minwon",
+ "model": "jev"
+}

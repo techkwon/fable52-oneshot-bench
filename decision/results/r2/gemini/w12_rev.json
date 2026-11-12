@@ -1,0 +1,35 @@
+{
+ "status": 200,
+ "latency": 0.4053267089984729,
+ "response": {
+  "answers": {
+   "action": {
+    "confidence": 0.29854645144673425,
+    "choice": "remove",
+    "probabilities": {
+     "allow": 0.02269522964241526,
+     "warn": 0.28100299018987707,
+     "escalate": 0.1141743573254525,
+     "remove": 0.29854645144673425,
+     "strike": 0.2835809713955209
+    },
+    "type": "choice"
+   }
+  },
+  "usage": {
+   "total_tokens": 142,
+   "total_input_tokens": 142,
+   "input_tokens_by_modality": [
+    {
+     "modality": "text",
+     "tokens": 142
+    }
+   ],
+   "total_output_tokens": 0
+  }
+ },
+ "attempts": 1,
+ "id": "w12_rev",
+ "suite": "order",
+ "model": "gemini"
+}

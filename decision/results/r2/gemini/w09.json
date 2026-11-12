@@ -1,0 +1,38 @@
+{
+ "status": 200,
+ "latency": 0.3757336250055232,
+ "response": {
+  "answers": {
+   "harmful_request": {
+    "confidence": 0.6035160476413759,
+    "noul": 0.39648395235862416,
+    "type": "noul"
+   },
+   "medical_advice": {
+    "confidence": 0.9367042293782329,
+    "noul": 0.06329577062176708,
+    "type": "noul"
+   },
+   "jailbreak": {
+    "confidence": 0.99,
+    "noul": 0.99,
+    "type": "noul"
+   }
+  },
+  "usage": {
+   "total_tokens": 234,
+   "total_input_tokens": 234,
+   "input_tokens_by_modality": [
+    {
+     "modality": "text",
+     "tokens": 234
+    }
+   ],
+   "total_output_tokens": 0
+  }
+ },
+ "attempts": 1,
+ "id": "w09",
+ "suite": "web",
+ "model": "gemini"
+}

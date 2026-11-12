@@ -1,0 +1,38 @@
+{
+ "status": 200,
+ "latency": 0.2582747080014087,
+ "response": {
+  "answers": {
+   "urgency": {
+    "confidence": 0.6409552830096339,
+    "score": 1.627999342000538,
+    "probabilities": {
+     "0": 0.012955941009095905,
+     "1": 0.3460887759812703,
+     "2": 0.6409552830096339
+    },
+    "legend": {
+     "1": "wants it fixed soon",
+     "0": "routine: no time pressure",
+     "2": "deadline imminent or work is blocked"
+    },
+    "type": "score"
+   }
+  },
+  "usage": {
+   "total_tokens": 134,
+   "total_input_tokens": 134,
+   "input_tokens_by_modality": [
+    {
+     "modality": "text",
+     "tokens": 134
+    }
+   ],
+   "total_output_tokens": 0
+  }
+ },
+ "attempts": 1,
+ "id": "w05",
+ "suite": "web",
+ "model": "gemini"
+}

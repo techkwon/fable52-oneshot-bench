@@ -1,0 +1,35 @@
+{
+ "status": 200,
+ "latency": 0.25789366599929053,
+ "response": {
+  "answers": {
+   "tool": {
+    "confidence": 0.999227522928914,
+    "choice": "top_movers",
+    "probabilities": {
+     "news": 3.381857057646253e-05,
+     "quote": 4.843953951767498e-05,
+     "top_movers": 0.999227522928914,
+     "volatility": 3.048466006620953e-05,
+     "other": 0.000659734300925524
+    },
+    "type": "choice"
+   }
+  },
+  "usage": {
+   "total_tokens": 141,
+   "total_input_tokens": 141,
+   "input_tokens_by_modality": [
+    {
+     "modality": "text",
+     "tokens": 141
+    }
+   ],
+   "total_output_tokens": 0
+  }
+ },
+ "attempts": 1,
+ "id": "w10",
+ "suite": "web",
+ "model": "gemini"
+}

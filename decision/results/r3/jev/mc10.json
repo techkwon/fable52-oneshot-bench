@@ -1,0 +1,29 @@
+{
+ "status": 200,
+ "latency": 0.17094612499931827,
+ "response": {
+  "model": "jev-1.14.0",
+  "answers": {
+   "answer": {
+    "type": "choice",
+    "choice": "2",
+    "confidence": 0.47,
+    "probabilities": {
+     "1": 0.08,
+     "2": 0.58,
+     "3": 0.14,
+     "4": 0.1,
+     "5": 0.1
+    }
+   }
+  },
+  "usage": {
+   "input_tokens": 425,
+   "output_tokens": 52
+  }
+ },
+ "attempts": 1,
+ "id": "mc10",
+ "suite": "exam_mc",
+ "model": "jev"
+}

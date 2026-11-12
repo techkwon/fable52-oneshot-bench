@@ -1,0 +1,60 @@
+{
+ "status": 200,
+ "latency": 0.6546221660028095,
+ "response": {
+  "answers": {
+   "self_resolve": {
+    "confidence": 0.9786390347373902,
+    "noul": 0.02136096526260975,
+    "type": "noul"
+   },
+   "severity": {
+    "confidence": 0.7677876470484774,
+    "score": 1.9989638817646143,
+    "probabilities": {
+     "0": 0.005200151402916743,
+     "1": 0.10882400848907886,
+     "3": 0.11818819305952694,
+     "2": 0.7677876470484774
+    },
+    "legend": {
+     "3": "매우 심각: 생명·신체 위협, 성폭력, 보복",
+     "2": "심각: 지속적이거나 피해가 큼",
+     "1": "보통: 피해가 있으나 회복 가능",
+     "0": "경미: 일회성, 피해 작음"
+    },
+    "type": "score"
+   },
+   "type": {
+    "confidence": 0.9996618324012577,
+    "choice": "exclusion",
+    "probabilities": {
+     "verbal": 0.00012638962033358121,
+     "cyber": 5.6751578908942376e-05,
+     "sexual": 5.409028161232909e-05,
+     "coercion": 2.158587554942643e-05,
+     "none": 2.7390558418266316e-05,
+     "physical": 4.0866650430322285e-05,
+     "extortion": 1.1093033489618373e-05,
+     "exclusion": 0.9996618324012577
+    },
+    "type": "choice"
+   }
+  },
+  "usage": {
+   "total_tokens": 659,
+   "total_input_tokens": 659,
+   "input_tokens_by_modality": [
+    {
+     "modality": "text",
+     "tokens": 659
+    }
+   ],
+   "total_output_tokens": 0
+  }
+ },
+ "attempts": 1,
+ "id": "h02",
+ "suite": "hakpok",
+ "model": "gemini"
+}

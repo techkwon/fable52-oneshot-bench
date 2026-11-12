@@ -1,0 +1,27 @@
+{
+ "status": 200,
+ "latency": 0.17833866699947976,
+ "response": {
+  "model": "jev-1.14.0",
+  "answers": {
+   "dept": {
+    "type": "choice",
+    "choice": "billing",
+    "confidence": 0.86,
+    "probabilities": {
+     "account": 0.05,
+     "technical": 0.04,
+     "billing": 0.91
+    }
+   }
+  },
+  "usage": {
+   "input_tokens": 356,
+   "output_tokens": 38
+  }
+ },
+ "attempts": 1,
+ "id": "w02_rev",
+ "suite": "order",
+ "model": "jev"
+}

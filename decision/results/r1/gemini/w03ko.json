@@ -1,0 +1,28 @@
+{
+ "status": 200,
+ "latency": 0.34306129099422833,
+ "response": {
+  "answers": {
+   "refund": {
+    "confidence": 0.99,
+    "noul": 0.99,
+    "type": "noul"
+   }
+  },
+  "usage": {
+   "total_tokens": 119,
+   "total_input_tokens": 119,
+   "input_tokens_by_modality": [
+    {
+     "modality": "text",
+     "tokens": 119
+    }
+   ],
+   "total_output_tokens": 0
+  }
+ },
+ "attempts": 1,
+ "id": "w03ko",
+ "suite": "web",
+ "model": "gemini"
+}

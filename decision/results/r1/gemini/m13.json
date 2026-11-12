@@ -1,0 +1,60 @@
+{
+ "status": 200,
+ "latency": 0.3331302910009981,
+ "response": {
+  "answers": {
+   "urgency": {
+    "confidence": 0.4251273028032399,
+    "score": 1.3998338820220946,
+    "probabilities": {
+     "1": 0.4251273028032399,
+     "3": 0.07941918760555193,
+     "2": 0.3682245082010995,
+     "0": 0.12722900139010854
+    },
+    "legend": {
+     "1": "보통: 이번 주 안에 처리",
+     "0": "낮음: 며칠 안에 답하면 됨",
+     "3": "긴급: 즉시 관리자 보고·안전 조치",
+     "2": "높음: 오늘 안에 연락 필요"
+    },
+    "type": "score"
+   },
+   "infringement": {
+    "confidence": 0.99,
+    "noul": 0.01,
+    "type": "noul"
+   },
+   "category": {
+    "confidence": 0.991088216918167,
+    "choice": "admin",
+    "probabilities": {
+     "praise": 6.095233608817474e-05,
+     "violence": 0.00010650520286932736,
+     "safety": 0.007294712943209126,
+     "academic": 0.0005201801564096543,
+     "teacher": 9.237338277833464e-05,
+     "other": 0.0005899677328786542,
+     "admin": 0.991088216918167,
+     "life": 0.0002470913275998597
+    },
+    "type": "choice"
+   }
+  },
+  "usage": {
+   "total_tokens": 476,
+   "total_input_tokens": 476,
+   "input_tokens_by_modality": [
+    {
+     "modality": "text",
+     "tokens": 476
+    }
+   ],
+   "total_output_tokens": 0
+  }
+ },
+ "attempts": 1,
+ "id": "m13",
+ "suite": "minwon",
+ "model": "gemini"
+}

@@ -1,0 +1,32 @@
+{
+ "status": 200,
+ "latency": 0.18395595799665898,
+ "response": {
+  "model": "jev-1.14.0",
+  "answers": {
+   "urgency": {
+    "type": "score",
+    "score": 1.87,
+    "confidence": 0.8,
+    "legend": {
+     "0": "routine: no time pressure",
+     "1": "wants it fixed soon",
+     "2": "deadline imminent or work is blocked"
+    },
+    "probabilities": {
+     "0": 0.0,
+     "1": 0.13,
+     "2": 0.87
+    }
+   }
+  },
+  "usage": {
+   "input_tokens": 334,
+   "output_tokens": 18
+  }
+ },
+ "attempts": 1,
+ "id": "w05",
+ "suite": "web",
+ "model": "jev"
+}

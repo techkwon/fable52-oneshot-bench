@@ -1,0 +1,39 @@
+suite          model      acc     ±1    n  conf✓  conf✗  lat(med)
+exam_essay     gemini     88%    88%    8   0.89   0.89     0.33s
+exam_essay     jev        88%   100%    8   0.93   0.14     0.24s
+exam_mc        gemini    100%      -   10   0.98   0.00     0.36s
+exam_mc        jev        70%      -   10   0.84   0.36     0.18s
+exam_nonsul    gemini     75%   100%   12   0.70   0.58     0.34s
+exam_nonsul    jev        83%   100%   12   0.87   0.74     0.18s
+exam_short     gemini    100%      -   10   0.98   0.00     0.37s
+exam_short     jev       100%      -   10   0.96   0.00     0.19s
+hakpok         gemini     97%   100%   35   0.84   0.49     0.32s
+hakpok         jev        97%   100%   35   0.86   0.50     0.19s
+minwon         gemini     86%   100%   42   0.90   0.51     0.40s
+minwon         jev        86%    81%   42   0.93   0.47     0.19s
+order          gemini    100%      -    7   0.71   0.00     0.28s
+order          jev       100%      -    7   0.81   0.00     0.18s
+web            gemini    100%   100%   17   0.89   0.00     0.34s
+web            jev       100%   100%   17   0.89   0.00     0.20s
+gemini overall acc 92.2% ECE 0.095 | stable 145 / 145 | tokens {'calls': 240, 'total': 83784, 'mean': 349.1}
+jev overall acc 90.8% ECE 0.066 | stable 141 / 145 | tokens {'calls': 240, 'total': 142092, 'mean': 592.05}
+unstable: {'gemini': [], 'jev': ['h05.severity', 'h07.severity', 'm10.urgency', 'w12_rev.action']}
+
+WRONG (any repeat):
+  es06.points            exp=0  gemini:[(3, 0.89), (3, 0.89), (3, 0.89)]  jev:[(1, 0.09), (1, 0.15), (1, 0.19)]
+  h05.severity           exp=1  jev:[(0, 0.53), (0, 0.56)]
+  h06.severity           exp=0  gemini:[(1, 0.49), (1, 0.49), (1, 0.49)]
+  h07.severity           exp=3  jev:[(2, 0.42)]
+  m02.urgency            exp=2  gemini:[(3, 0.69), (3, 0.69), (3, 0.69)]  jev:[(3, 0.93), (3, 0.91), (3, 0.92)]
+  m03.urgency            exp=1  gemini:[(2, 0.51), (2, 0.51), (2, 0.51)]  jev:[(3, 0.85), (3, 0.85), (3, 0.82)]
+  m04.urgency            exp=0  gemini:[(1, 0.46), (1, 0.46), (1, 0.46)]
+  m08.urgency            exp=[0, 1]  gemini:[(2, 0.45), (2, 0.45), (2, 0.45)]  jev:[(2, 0.6), (2, 0.65), (2, 0.62)]
+  m09.urgency            exp=[1, 2]  jev:[(0, 0.01), (0, 0), (0, 0)]
+  m10.urgency            exp=0  gemini:[(1, 0.51), (1, 0.51), (1, 0.51)]  jev:[(1, 0.44), (2, 0.34), (2, 0.33)]
+  m13.urgency            exp=0  gemini:[(1, 0.43), (1, 0.43), (1, 0.43)]  jev:[(2, 0.06), (2, 0.06), (2, 0.12)]
+  mc01.answer            exp=3  jev:[('2', 0.21), ('2', 0.2), ('2', 0.21)]
+  mc03.answer            exp=3  jev:[('2', 0.41), ('2', 0.47), ('2', 0.45)]
+  mc07.answer            exp=3  jev:[('4', 0.45), ('4', 0.47), ('4', 0.39)]
+  ns01.counter           exp=3  gemini:[(2, 0.67), (2, 0.67), (2, 0.67)]  jev:[(2, 0.68), (2, 0.71), (2, 0.67)]
+  ns03.evidence          exp=1  gemini:[(0, 0.52), (0, 0.52), (0, 0.52)]
+  ns03.counter           exp=0  gemini:[(1, 0.56), (1, 0.56), (1, 0.56)]  jev:[(1, 0.83), (1, 0.8), (1, 0.76)]

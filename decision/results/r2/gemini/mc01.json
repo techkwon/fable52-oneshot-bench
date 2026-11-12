@@ -1,0 +1,35 @@
+{
+ "status": 200,
+ "latency": 0.31547479199798545,
+ "response": {
+  "answers": {
+   "answer": {
+    "confidence": 0.9989820994366507,
+    "choice": "3",
+    "probabilities": {
+     "1": 0.00025830410016958557,
+     "2": 0.00012483220108046878,
+     "4": 0.0003519986360274213,
+     "5": 0.0002827656260719807,
+     "3": 0.9989820994366507
+    },
+    "type": "choice"
+   }
+  },
+  "usage": {
+   "total_tokens": 175,
+   "total_input_tokens": 175,
+   "input_tokens_by_modality": [
+    {
+     "modality": "text",
+     "tokens": 175
+    }
+   ],
+   "total_output_tokens": 0
+  }
+ },
+ "attempts": 1,
+ "id": "mc01",
+ "suite": "exam_mc",
+ "model": "gemini"
+}
